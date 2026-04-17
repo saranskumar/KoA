@@ -4,9 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useDataMutation } from '../../hooks/useData';
 
 export default function OnboardingView({ onComplete }) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isPastMasterSchedule = todayStr > '2026-04-24';
-  const [choice, setChoice] = useState(isPastMasterSchedule ? 's4' : 's4_master');
+  const [choice, setChoice] = useState('s4');
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
   const mutation = useDataMutation();
@@ -14,12 +12,7 @@ export default function OnboardingView({ onComplete }) {
   const handleStart = async () => {
     setIsProcessing(true);
     try {
-      if (choice === 's4_master') {
-        const res = await mutation.mutateAsync({ action: 'importS4', seedSchedule: true });
-        if (res?.warning) console.warn(res.warning);
-        queryClient.invalidateQueries({ queryKey: ['appData'] });
-        onComplete('planSetup');
-      } else if (choice === 's4') {
+      if (choice === 's4') {
         await mutation.mutateAsync({ action: 'importS4', seedSchedule: false });
         queryClient.invalidateQueries({ queryKey: ['appData'] });
         onComplete('planSetup');
@@ -56,41 +49,6 @@ export default function OnboardingView({ onComplete }) {
         {/* Option Cards */}
         <div className="space-y-3">
 
-          {/* SR AI Master Schedule Option */}
-          {!isPastMasterSchedule && (
-            <button
-            onClick={() => setChoice('s4_master')}
-            className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
-              choice === 's4_master'
-                ? 'border-[#77bfa3] bg-[#bfd8bd]/10 shadow-[0_0_0_4px_rgba(119,191,163,0.1)]'
-                : 'border-[#edeec9] bg-white hover:border-[#98c9a3] hover:bg-[#f8faf4]'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                choice === 's4_master' ? 'bg-[#77bfa3] text-white' : 'bg-[#edeec9] text-[#3c7f65]'
-              }`}>
-                <Flame size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-[#313c1a] text-base">SR AI Master Schedule</h3>
-                  <span className="text-[10px] font-bold text-white bg-[#fb923c] px-2 py-0.5 rounded-full uppercase tracking-wider">Recommended</span>
-                </div>
-                <p className="text-[#627833] text-sm leading-relaxed">
-                  Intensive SR AI Roadmap (Apr 17–24). Optimized study path with automated task seeding.
-                </p>
-                <div className="flex items-center gap-2 mt-3 overflow-hidden whitespace-nowrap opacity-60">
-                  <div className="text-[9px] font-bold text-[#50a987] bg-white border border-[#bfd8bd] px-2 py-0.5 rounded-md">Roadmap Seeded</div>
-                  <div className="text-[9px] font-bold text-[#50a987] bg-white border border-[#bfd8bd] px-2 py-0.5 rounded-md">6 Slots Ready</div>
-                </div>
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${choice === 's4_master' ? 'border-[#77bfa3] bg-[#77bfa3]' : 'border-[#dde7c7]'}`}>
-                {choice === 's4_master' && <div className="w-2 h-2 bg-white rounded-full" />}
-              </div>
-            </div>
-          </button>
-          )}
 
           {/* S4 Basic Option */}
           <button
