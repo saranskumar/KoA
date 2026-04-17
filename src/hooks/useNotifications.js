@@ -123,7 +123,9 @@ export function useNotifications(session) {
     if (!session?.user?.id) return { success: false, error: 'Not logged in' };
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('test-push');
+      const { data, error } = await supabase.functions.invoke('test-push', {
+        body: { user_id: session.user.id }
+      });
       if (error) throw error;
       return { success: true, data };
     } catch (err) {

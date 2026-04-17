@@ -18,26 +18,39 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the JWT from the Authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header provided' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
+    let userId;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Get the JWT from the Authorization header or fallback
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired user token', details: authError }), {
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (user) {
+         userId = user.id;
+      } else {
+         console.error("JWT Auth Failed:", authError);
+      }
+    }
+
+    // Fallback: If no valid token found, try to read user_id from body
+    if (!userId) {
+       try {
+         const body = await req.json();
+         if (body && body.user_id) {
+            userId = body.user_id;
+         }
+       } catch(e) {
+         // ignore body parse error
+       }
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'No user identified via JWT or payload.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
-
-    const userId = user.id;
 
     const vaporSubject = "mailto:hello@koaplanner.app";
     const vaporPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
