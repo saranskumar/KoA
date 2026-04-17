@@ -7,6 +7,7 @@ import { useAppStore } from './store/useAppStore';
 import AuthView from './components/views/AuthView';
 import OnboardingView from './components/views/OnboardingView';
 import PlanSetupView from './components/views/PlanSetupView';
+import AIImportView from './components/views/AIImportView';
 import DailyPlanView from './components/views/DailyPlanView';
 import SyllabusView from './components/views/SyllabusView';
 import SubjectDetailView from './components/views/SubjectDetailView';
@@ -86,6 +87,10 @@ function AppInner() {
   }
 
   // ── Post-onboarding plan setup flow ──
+  if (postOnboardingRoute === 'aiImport') {
+    return <AIImportView data={data} onComplete={handlePlanSetupComplete} />;
+  }
+
   if (postOnboardingRoute === 'planSetup') {
     return <PlanSetupView data={data} onComplete={handlePlanSetupComplete} />;
   }

@@ -16,6 +16,8 @@ export default function OnboardingView({ onComplete }) {
         await mutation.mutateAsync({ action: 'importS4', seedSchedule: false });
         queryClient.invalidateQueries({ queryKey: ['appData'] });
         onComplete('planSetup');
+      } else if (choice === 'ai_import') {
+        onComplete('aiImport');
       } else {
         await mutation.mutateAsync({ action: 'startBlank' });
         queryClient.invalidateQueries({ queryKey: ['appData'] });
@@ -100,6 +102,36 @@ export default function OnboardingView({ onComplete }) {
               </div>
               <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${choice === 'blank' ? 'border-[#77bfa3] bg-[#77bfa3]' : 'border-[#dde7c7]'}`}>
                 {choice === 'blank' && <div className="w-2 h-2 bg-white rounded-full" />}
+              </div>
+            </div>
+          </button>
+
+          {/* AI Import Option */}
+          <button
+            onClick={() => setChoice('ai_import')}
+            className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
+              choice === 'ai_import'
+                ? 'border-[#77bfa3] bg-[#bfd8bd]/10 shadow-[0_0_0_4px_rgba(119,191,163,0.1)]'
+                : 'border-[#edeec9] bg-white hover:border-[#98c9a3] hover:bg-[#f8faf4]'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                choice === 'ai_import' ? 'bg-[#77bfa3] text-white' : 'bg-[#edeec9] text-[#3c7f65]'
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-[#313c1a] text-base">Make your own plan with AI</h3>
+                  <span className="text-[10px] font-bold text-[#3c7f65] bg-[#bfd8bd]/40 border border-[#98c9a3] px-2 py-0.5 rounded-full uppercase tracking-wider">New</span>
+                </div>
+                <p className="text-[#627833] text-sm leading-relaxed">
+                  Use ChatGPT, Claude, or any AI to build a custom schedule from your syllabus and import it instantly.
+                </p>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${choice === 'ai_import' ? 'border-[#77bfa3] bg-[#77bfa3]' : 'border-[#dde7c7]'}`}>
+                {choice === 'ai_import' && <div className="w-2 h-2 bg-white rounded-full" />}
               </div>
             </div>
           </button>

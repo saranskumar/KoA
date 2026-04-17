@@ -211,6 +211,129 @@ export function useDataMutation() {
         return { planId: data };
       }
 
+      else if (action === 'importAIPlan') {
+        const { plan, subjects: aiSubjects, study_plan: aiTasks } = payload.payload;
+        
+        // 1. Insert Plan
+        const { data: planData, error: planErr } = await supabase.from('plans').insert({
+          user_id: userId,
+          title: plan.title,
+          description: plan.description || '',
+          is_s4: false,
+          has_master_schedule: true
+        }).select().single();
+        if (planErr) throw planErr;
+        
+        const planId = planData.id;
+
+        // 2. Prepare batched rows
+        const subjectRows = [];
+        const moduleRows = [];
+        const topicRows = [];
+        
+        const subjectNameIdMap = {};
+        const topicMatchMap = {};
+
+        if (Array.isArray(aiSubjects)) {
+          aiSubjects.forEach((sub, subIdx) => {
+            const subId = crypto.randomUUID();
+            subjectNameIdMap[sub.name] = subId;
+            
+            subjectRows.push({
+              id: subId,
+              user_id: userId,
+              plan_id: planId,
+              name: sub.name,
+              exam_date: sub.exam_date || null,
+              sort_order: subIdx + 1,
+              template_subject_id: 'custom-ai'
+            });
+
+            if (Array.isArray(sub.modules)) {
+               sub.modules.forEach((mod, modIdx) => {
+                 const modId = crypto.randomUUID();
+                 moduleRows.push({
+                   id: modId,
+                   user_id: userId,
+                   plan_id: planId,
+                   subject_id: subId,
+                   title: mod.name,
+                   module_no: modIdx + 1,
+                   template_module_id: 'custom-ai'
+                 });
+
+                 if (Array.isArray(mod.topics)) {
+                   mod.topics.forEach((topName, topIdx) => {
+                     const topId = crypto.randomUUID();
+                     topicMatchMap[`${sub.name}|${topName}`] = topId;
+                     topicRows.push({
+                       id: topId,
+                       user_id: userId,
+                       plan_id: planId,
+                       subject_id: subId,
+                       module_id: modId,
+                       name: topName,
+                       title: topName,
+                       sort_order: topIdx + 1,
+                       template_topic_id: 'custom-ai'
+                     });
+                   });
+                 }
+               });
+            }
+          });
+        }
+
+        // 3. Batch insert subjects, modules, topics (no RPC needed for straightforward inserts)
+        if (subjectRows.length > 0) {
+          const { error: subErr } = await supabase.from('subjects').insert(subjectRows);
+          if (subErr) throw subErr;
+        }
+        if (moduleRows.length > 0) {
+          const { error: modErr } = await supabase.from('modules').insert(moduleRows);
+          if (modErr) throw modErr;
+        }
+        if (topicRows.length > 0) {
+          const { error: topErr } = await supabase.from('topics').insert(topicRows);
+          if (topErr) throw topErr;
+        }
+
+        // 4. Prepare and Batch tasks
+        if (Array.isArray(aiTasks)) {
+          const taskRows = aiTasks.map(task => {
+            const sId = subjectNameIdMap[task.subject];
+            const tId = topicMatchMap[`${task.subject}|${task.topic}`] || null;
+            
+            return {
+              id: crypto.randomUUID(),
+              user_id: userId,
+              plan_id: planId,
+              subject_id: sId,
+              topic_id: tId,
+              date: task.date,
+              title: task.title,
+              planned_minutes: task.planned_minutes || 60,
+              status: 'pending',
+              task_type: task.priority === 'high' ? 'main' : 'light'
+            };
+          });
+
+          if (taskRows.length > 0) {
+            const { error: insErr } = await supabase.from('study_plan').insert(taskRows);
+            if (insErr) throw insErr;
+          }
+        }
+
+        // 5. Update Profile
+        await supabase.from('profiles')
+          .update({ is_onboarded: true, active_plan_id: planId })
+          .eq('id', userId);
+        
+        useAppStore.getState().setActivePlanId(planId);
+        
+        return { planId };
+      }
+
       else if (action === 'attachSubjectToSlot') {
         const { data, error } = await supabase.rpc('attach_subject_to_slot', {
           p_user_id: userId,

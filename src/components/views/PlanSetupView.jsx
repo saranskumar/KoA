@@ -254,7 +254,7 @@ export default function PlanSetupView({ data, onComplete }) {
               ) : hasSchedule ? (
                 <><Check size={18} /> Schedule Already Added</>
               ) : (
-                'Generate Apr 17–24 Schedule'
+                'Generate Schedule(only for AM)'
               )}
             </button>
           )}
@@ -262,7 +262,7 @@ export default function PlanSetupView({ data, onComplete }) {
           <button
             onClick={onComplete}
             disabled={saving || seeding}
-            className="w-full py-4 bg-[#77bfa3] hover:bg-[#50a987] text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_rgba(119,191,163,0.3)] disabled:opacity-60"
+            className="w-full py-4 bg-[#3c7f65] hover:bg-[#2d5a4c] text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_rgba(60,127,101,0.4)] disabled:opacity-50 disabled:bg-[#98c9a3]"
           >
             {saving ? <Loader2 size={18} className="animate-spin" /> : <>Start Studying <ArrowRight size={18} /></>}
           </button>
