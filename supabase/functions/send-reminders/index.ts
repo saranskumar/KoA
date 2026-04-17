@@ -20,6 +20,14 @@ serve(async (req) => {
   webpush.setVapidDetails(vaporSubject, vaporPublic, vaporPrivate);
 
   try {
+    // 0. Security Verification (ensure it's actually the pg_cron invoking us)
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const reqSecret = req.headers.get("x-cron-secret");
+    
+    if (cronSecret && reqSecret !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized cron invocation" }), { status: 401 });
+    }
+
     // 3. Get all active preferences
     const { data: prefs, error: prefsErr } = await supabase
       .from('notification_preferences')

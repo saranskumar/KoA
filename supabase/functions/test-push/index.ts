@@ -9,50 +9,58 @@ serve(async (req) => {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
 
-  // 1. Handle Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // 2. Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 3. Get User from JWT (Security Best Practice)
+    // Get the JWT from the Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      return new Response(JSON.stringify({ error: 'No authorization header provided' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
     }
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
     if (authError || !user) {
-      throw new Error('Invalid user token');
+      return new Response(JSON.stringify({ error: 'Invalid or expired user token', details: authError }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
     }
 
     const userId = user.id;
 
-    // 4. Setup Web Push VAPID keys
     const vaporSubject = "mailto:hello@koaplanner.app";
     const vaporPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
     const vaporPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
     
     if (!vaporPublic || !vaporPrivate) {
-      throw new Error("VAPID keys not configured on server");
+      throw new Error("VAPID keys are missing from Supabase Secrets.");
     }
 
     webpush.setVapidDetails(vaporSubject, vaporPublic, vaporPrivate);
 
-    // 5. Retrieve Subscriptions
-    const { data: subs, error } = await supabase
+    const { data: subs, error: subErr } = await supabase
       .from('push_subscriptions')
       .select('*')
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (subErr) throw subErr;
 
     if (!subs || subs.length === 0) {
-      return new Response(JSON.stringify({ status: "success", message: "No active push subscriptions found." }), {
+      return new Response(JSON.stringify({ 
+        status: "success", 
+        message: "Auth OK, but no active push subscriptions found for this device/user." 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -67,7 +75,6 @@ serve(async (req) => {
     });
 
     let successCount = 0;
-
     for (const sub of subs) {
       try {
         await webpush.sendNotification({
@@ -76,7 +83,7 @@ serve(async (req) => {
         }, payload);
         successCount++;
       } catch (err) {
-        console.error(`Push failed for ${sub.endpoint}:`, err);
+        console.error(`Push failed:`, err);
         if (err.statusCode === 404 || err.statusCode === 410) {
            await supabase.from('push_subscriptions').delete().eq('id', sub.id);
         }
@@ -89,10 +96,9 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge Function Error:', error.message);
     return new Response(JSON.stringify({ status: "error", error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 500,
     });
   }
 });
