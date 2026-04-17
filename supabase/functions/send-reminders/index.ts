@@ -114,7 +114,7 @@ serve(async (req) => {
       const payload = JSON.stringify({
         title,
         body,
-        icon: '/icon.ico',
+        icon: '/icon-512.png',
         url: '/',
         actions: [
           { action: 'start', title: '🚀 Start Session' }

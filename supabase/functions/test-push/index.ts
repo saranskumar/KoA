@@ -82,7 +82,7 @@ serve(async (req) => {
     const payload = JSON.stringify({
       title: "KōA Powerup! 🚀",
       body: "Test notification successful. Your study alerts are now live.",
-      icon: '/icon.ico',
+      icon: '/icon-512.png',
       url: '/',
       actions: [
         { action: 'start', title: '🚀 Start Session' }
