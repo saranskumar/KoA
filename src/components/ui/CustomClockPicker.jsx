@@ -59,6 +59,9 @@ export default function CustomClockPicker({ value, onChange, trigger }) {
     setIsOpen(false);
   };
 
+  const hoursList = Array.from({ length: 12 }, (_, i) => i + 1);
+  const minutesList = Array.from({ length: 60 }, (_, i) => i);
+
   const handleScrollHour = (e) => {
     const idx = Math.round(e.target.scrollTop / 56);
     if (hoursList[idx]) setHour12(hoursList[idx]);
