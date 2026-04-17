@@ -56,10 +56,10 @@ serve(async (req) => {
         const minutes = userLocalTime.getUTCMinutes();
         const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         
-        // We check a 15-minute window to be safe if cron isn't exactly on the dot
+        // The cron now runs every minute, so we trigger exactly on the correct minute
         const isMorningReminder = (pref.reminder_times || []).some(t => {
           const [h, m] = t.split(':').map(Number);
-          return h === hours && Math.abs(m - minutes) < 15;
+          return h === hours && m === minutes;
         });
 
         // 8 PM Nudge check
