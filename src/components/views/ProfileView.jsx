@@ -357,7 +357,7 @@ export default function ProfileView({ data, session }) {
                         />
                       </div>
 
-                      <div className="space-y-2 relative z-50">
+                      <div className="space-y-2">
                         {reminderTimes.map((time, idx) => (
                           <div key={idx} className="flex items-center gap-2 animate-in zoom-in-95 duration-200">
                             <div className="flex-1">
