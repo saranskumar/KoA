@@ -11,18 +11,7 @@ import { useDataMutation } from '../../hooks/useData';
 import { generateRandomName, generateNameOptions } from '../../lib/names';
 import PlansView from './PlansView';
 import LeaderboardView from './LeaderboardView';
-import SearchableSelect from '../ui/SearchableSelect';
-
-// Define standard time increments for the premium time-picker UI
-const TIME_OPTIONS = Array.from({ length: 48 }).map((_, i) => {
-  const h = Math.floor(i / 2);
-  const m = i % 2 === 0 ? '00' : '30';
-  const val = `${h.toString().padStart(2, '0')}:${m}`;
-  const isPM = h >= 12;
-  const h12 = h % 12 || 12;
-  const label = `${h12}:${m} ${isPM ? 'PM' : 'AM'}`;
-  return { value: val, label, sub: val };
-});
+import CustomClockPicker from '../ui/CustomClockPicker';
 
 export default function ProfileView({ data, session }) {
   const { profile, activePlan, userPreferences } = data || {};
