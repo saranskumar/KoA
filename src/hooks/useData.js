@@ -46,7 +46,7 @@ export function useAppData(userId) {
       const resolvedPlanId = activePlanId || profile.active_plan_id;
 
       // Parallel fetch: user data + public templates
-      const [subjectsRes, modulesRes, topicsRes, tasksRes, plansRes, subjectTemplatesRes, examSlotsRes] = await Promise.all([
+      const [subjectsRes, modulesRes, topicsRes, tasksRes, plansRes, subjectTemplatesRes, examSlotsRes, prefRes] = await Promise.all([
         supabase.from('subjects').select('*').eq('user_id', userId).order('sort_order', { ascending: true }),
         supabase.from('modules').select('*').eq('user_id', userId).order('module_no', { ascending: true }),
         supabase.from('topics').select('*').eq('user_id', userId).order('sort_order', { ascending: true }),
@@ -54,10 +54,12 @@ export function useAppData(userId) {
         supabase.from('plans').select('*').eq('user_id', userId),
         supabase.from('subject_templates').select('*').order('sort_order', { ascending: true }),
         supabase.from('exam_slots').select('*').eq('user_id', userId).order('sort_order', { ascending: true }),
+        supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle(),
       ]);
 
       const allSubjects = subjectsRes.data || [];
       const allModules = modulesRes.data || [];
+      const userPreferences = prefRes.data || { enabled: false, reminder_time: '09:00', quiet_hours_start: '22:00', quiet_hours_end: '08:00', tone: 'motivating' };
       const allTopics = topicsRes.data || [];
       const allTasks = tasksRes.data || [];
       const subjectTemplates = subjectTemplatesRes.data || [];
@@ -109,8 +111,27 @@ export function useAppData(userId) {
         return { date: dateStr, completed, day: d.toLocaleDateString('en-US', { weekday: 'short' }) };
       });
 
+      // Sync streak to backend async if the streak has changed (fire and forget)
+      // This ensures the public leaderboard always has the up-to-date streak
+      const streak = calculateStreak(tasks);
+      const activeCompleted = tasks.filter(t => t.status === 'completed').length;
+      
+      const syncProfileLeaderboardState = async () => {
+        if (!profile) return;
+        const needsUpdate = profile.current_streak !== streak || profile.completed_tasks !== activeCompleted;
+        if (needsUpdate) {
+           supabase.from('profiles').update({
+             current_streak: streak,
+             best_streak: Math.max(streak, profile.best_streak || 0),
+             completed_tasks: activeCompleted
+           }).eq('id', userId).then()
+        }
+      };
+      syncProfileLeaderboardState();
+
       return {
         profile,
+        userPreferences,
         activePlan,
         subjects,
         modules,
@@ -273,6 +294,20 @@ export function useDataMutation() {
           .delete()
           .eq('id', payload.taskId)
           .eq('user_id', userId);
+        if (error) throw error;
+      }
+
+      // ── Profile / Options Management ──
+      else if (action === 'updateProfile') {
+        const { error } = await supabase.from('profiles')
+          .update(payload.patch)
+          .eq('id', userId);
+        if (error) throw error;
+      }
+
+      else if (action === 'updateNotificationPreferences') {
+        const { error } = await supabase.from('notification_preferences')
+          .upsert({ ...payload.patch, user_id: userId }, { onConflict: 'user_id' });
         if (error) throw error;
       }
 

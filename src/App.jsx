@@ -13,8 +13,10 @@ import SubjectDetailView from './components/views/SubjectDetailView';
 import PlansView from './components/views/PlansView';
 import AnalyticsView from './components/views/AnalyticsView';
 import ProfileView from './components/views/ProfileView';
+import LeaderboardView from './components/views/LeaderboardView';
 
-import { CalendarDays, BookOpen, LayoutGrid, BarChart2, User } from 'lucide-react';
+import { CalendarDays, BookOpen, LayoutGrid, BarChart2, User, Trophy } from 'lucide-react';
+
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 2 * 60 * 1000 } }
@@ -27,6 +29,7 @@ const PAGE_TITLES = {
   SubjectDetail: null,          // uses subject name in view header
   Plans:         'Plans',
   Stats:         'Progress',
+  Leaderboard:   'Leaderboard',
   Profile:       'Profile',
 };
 
@@ -91,11 +94,11 @@ function AppInner() {
 
   // ── Nav config ──
   const NAV = [
-    { id: 'Today',   label: 'Today',    Icon: CalendarDays },
-    { id: 'Syllabus', label: 'Subjects', Icon: BookOpen },
-    { id: 'Plans',   label: 'Plans',    Icon: LayoutGrid },
-    { id: 'Stats',   label: 'Progress', Icon: BarChart2 },
-    { id: 'Profile', label: 'Profile',  Icon: User },
+    { id: 'Today',       label: 'Today',       Icon: CalendarDays },
+    { id: 'Syllabus',    label: 'Subjects',    Icon: BookOpen },
+    { id: 'Stats',       label: 'Stats',       Icon: BarChart2 },
+    { id: 'Leaderboard', label: 'Ranks',       Icon: Trophy },
+    { id: 'Profile',     label: 'Profile',     Icon: User },
   ];
 
   const isFullscreen = currentView === 'SubjectDetail';
@@ -110,6 +113,7 @@ function AppInner() {
       case 'SubjectDetail': return <SubjectDetailView data={data} />;
       case 'Plans':         return <PlansView data={data} />;
       case 'Stats':         return <AnalyticsView data={data} />;
+      case 'Leaderboard':   return <LeaderboardView data={data} session={session} />;
       case 'Profile':       return <ProfileView data={data} session={session} />;
       default:              return <DailyPlanView data={data} />;
     }
