@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   User, LogOut, BookOpen, Bell, BellOff, Info, 
   Trophy, Save, Loader2, Sparkles, RefreshCw, 
@@ -27,7 +27,6 @@ export default function ProfileView({ data, session }) {
   const [reminderTimes, setReminderTimes] = useState(userPreferences?.reminder_times || ['09:00']);
   const [nudge8pmEnabled, setNudge8pmEnabled] = useState(userPreferences?.nudge_8pm_enabled !== false);
   
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState([]);
 
   useEffect(() => {
@@ -41,21 +40,7 @@ export default function ProfileView({ data, session }) {
   };
 
   const handlePushToggle = async () => {
-    if (!notificationState.isSubscribed) {
-      const success = await notificationState.subscribeToPush();
-      if (success) {
-        mutation.mutate({
-          action: 'updateNotificationPreferences',
-          patch: { 
-            enabled: true, 
-            reminder_times: reminderTimes,
-            nudge_8pm_enabled: nudge8pmEnabled,
-            active_plan_id: activePlan?.id || null,
-            tz_offset: new Date().getTimezoneOffset()
-          }
-        });
-      }
-    } else {
+    if (notificationState.isSubscribed) {
       const success = await notificationState.unsubscribeFromPush();
       if (success) {
         mutation.mutate({
@@ -63,42 +48,78 @@ export default function ProfileView({ data, session }) {
           patch: { enabled: false }
         });
       }
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    setIsSavingProfile(true);
-    try {
-      await mutation.mutateAsync({
-        action: 'updateProfile',
-        patch: {
-          display_name: displayName,
-          show_on_leaderboard: showOnLeaderboard
-        }
-      });
-      if (notificationState.isSubscribed) {
-        await mutation.mutateAsync({
+    } else {
+      const success = await notificationState.subscribeToPush();
+      if (success) {
+        mutation.mutate({
           action: 'updateNotificationPreferences',
           patch: { 
-             reminder_times: reminderTimes,
-             nudge_8pm_enabled: nudge8pmEnabled,
-             active_plan_id: activePlan?.id || null 
+            enabled: true,
+            active_plan_id: activePlan?.id || null
           }
         });
       }
-    } catch (e) {
-      alert("Failed to save settings: " + e.message);
-    } finally {
-      setIsSavingProfile(false);
     }
   };
 
-  const addReminderTime = () => setReminderTimes([...reminderTimes, '12:00']);
-  const removeReminderTime = (idx) => setReminderTimes(reminderTimes.filter((_, i) => i !== idx));
+  // ─── Auto-Save Helpers ───
+  
+  const saveProfileChange = useCallback((patch) => {
+    mutation.mutate({
+      action: 'updateProfile',
+      patch
+    });
+  }, [mutation]);
+
+  const saveNotificationChange = useCallback((patch) => {
+    mutation.mutate({
+      action: 'updateNotificationPreferences',
+      patch: {
+        ...patch,
+        active_plan_id: activePlan?.id || null
+      }
+    });
+  }, [mutation, activePlan]);
+
+  // Debounced Nickname Save
+  useEffect(() => {
+    if (displayName === profile?.display_name) return;
+    const timer = setTimeout(() => {
+      saveProfileChange({ display_name: displayName });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [displayName, profile?.display_name, saveProfileChange]);
+
+  const addReminderTime = () => {
+    const next = [...reminderTimes, '12:00'];
+    setReminderTimes(next);
+    saveNotificationChange({ reminder_times: next });
+  };
+
+  const removeReminderTime = (idx) => {
+    const next = reminderTimes.filter((_, i) => i !== idx);
+    setReminderTimes(next);
+    saveNotificationChange({ reminder_times: next });
+  };
+
   const updateReminderTime = (idx, val) => {
     const next = [...reminderTimes];
     next[idx] = val;
     setReminderTimes(next);
+    // Only save if it looks like a complete time string
+    if (val.length === 5) {
+      saveNotificationChange({ reminder_times: next });
+    }
+  };
+
+  const toggleLeaderboard = (val) => {
+    setShowOnLeaderboard(val);
+    saveProfileChange({ show_on_leaderboard: val });
+  };
+
+  const toggleNudge8pm = (val) => {
+    setNudge8pmEnabled(val);
+    saveNotificationChange({ nudge_8pm_enabled: val });
   };
 
   const sendTestNotification = async () => {
@@ -218,7 +239,7 @@ export default function ProfileView({ data, session }) {
                       <div className="text-[10px] text-[#627833] font-medium mt-0.5 leading-relaxed">Active by default. Participate in the global rankings with your anonymous nickname.</div>
                     </div>
                     <button
-                      onClick={() => setShowOnLeaderboard(!showOnLeaderboard)}
+                      onClick={() => toggleLeaderboard(!showOnLeaderboard)}
                       className={`relative w-12 h-7 rounded-full transition-all duration-500 focus:outline-none flex-shrink-0 shadow-inner ${showOnLeaderboard ? 'bg-[#fb923c]' : 'bg-[#dde7c7]'}`}
                     >
                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-lg shadow-md transition-all duration-500 flex items-center justify-center ${showOnLeaderboard ? 'left-6' : 'left-1'}`}>
@@ -279,7 +300,7 @@ export default function ProfileView({ data, session }) {
            )}
         </div>
 
-        {{/* Group 2: Notifications */}}
+        {/* Group 2: Notifications */}
         <div className="clay-card overflow-hidden">
            <button 
              onClick={() => toggleSection('alerts')}
@@ -368,7 +389,7 @@ export default function ProfileView({ data, session }) {
                             <div className="text-[10px] text-[#627833] font-medium mt-1 leading-relaxed opacity-70">Send a nudge only if tasks are incomplete by 8 PM.</div>
                           </div>
                           <button
-                            onClick={() => setNudge8pmEnabled(!nudge8pmEnabled)}
+                            onClick={() => toggleNudge8pm(!nudge8pmEnabled)}
                             className={`relative w-12 h-7 rounded-full transition-all duration-500 focus:outline-none flex-shrink-0 shadow-inner ${nudge8pmEnabled ? 'bg-[#77bfa3]' : 'bg-[#dde7c7]'}`}
                           >
                             <div className={`absolute top-1 w-5 h-5 bg-white rounded-lg shadow-md transition-all duration-500 flex items-center justify-center ${nudge8pmEnabled ? 'left-6' : 'left-1'}`}>
@@ -401,13 +422,12 @@ export default function ProfileView({ data, session }) {
       </div>
 
       <div className="pt-4 space-y-4">
-        <button
-          onClick={handleSaveProfile}
-          disabled={isSavingProfile}
-          className="w-full py-5 bg-[#313c1a] hover:bg-black text-white font-black text-xs uppercase tracking-[0.2em] rounded-[1.5rem] flex items-center justify-center gap-3 transition-all disabled:opacity-60 shadow-xl active:scale-[0.97]"
-        >
-          {isSavingProfile ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Update Settings</>}
-        </button>
+        <div className="flex items-center justify-center gap-2 p-4 bg-[#f8faf4] rounded-2xl border border-[#edeec9] animate-in slide-in-from-bottom-2 duration-500">
+           <div className={`w-2 h-2 rounded-full ${mutation.isLoading ? 'bg-[#fb923c] animate-pulse' : 'bg-[#77bfa3]'}`}></div>
+           <span className="text-[10px] font-black uppercase tracking-widest text-[#627833] opacity-60">
+             {mutation.isLoading ? 'Syncing Changes...' : 'All Settings Saved'}
+           </span>
+        </div>
 
         <button
           onClick={handleSignOut}
