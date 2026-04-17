@@ -398,6 +398,14 @@ export function useDataMutation() {
         if (error) throw error;
       }
 
+      else if (action === 'deleteSubject') {
+        const { error } = await supabase.from('subjects')
+          .delete()
+          .eq('id', payload.subjectId)
+          .eq('user_id', userId);
+        if (error) throw error;
+      }
+
       // ── Task management ──
       else if (action === 'addTask') {
         const { error } = await supabase.from('study_plan').insert({
