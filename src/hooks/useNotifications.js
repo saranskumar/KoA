@@ -119,11 +119,32 @@ export function useNotifications(session) {
     }
   };
 
+  const sendTestNotification = async () => {
+    if (!session?.user?.id) return { success: false, error: 'Not logged in' };
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-push', {
+        body: { userId: session.user.id }
+      });
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      console.error('Test notification failed:', err);
+      return { success: false, error: err.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
   return {
     permission,
     isSubscribed,
     isLoading,
+    isSupported,
     subscribeToPush,
-    unsubscribeFromPush
+    unsubscribeFromPush,
+    sendTestNotification
   };
 }

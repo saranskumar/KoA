@@ -129,16 +129,9 @@ export default function ProfileView({ data, session }) {
       alert("Please enable notifications first!");
       return;
     }
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      registration.showNotification("S4 Test Notification", {
-        body: "Your study alerts are working perfectly! 🚀",
-        icon: "/icon.ico",
-        badge: "/icon.ico",
-        vibrate: [200, 100, 200]
-      });
-    } catch (e) {
-      alert("Test failed: " + e.message);
+    const result = await notificationState.sendTestNotification();
+    if (!result.success) {
+      alert("Test failed: " + result.error);
     }
   };
 
