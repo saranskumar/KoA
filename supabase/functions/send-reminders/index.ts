@@ -28,36 +28,39 @@ serve(async (req) => {
 
     if (prefsErr) throw prefsErr;
 
-    const results = [];
-    const now = new Date();
+      // 4. For each active user, check if now is a trigger time for them
+      const results = [];
+      const now = new Date();
 
-    // 4. For each active user, check if now is a trigger time for them
-    for (const pref of prefs) {
-      if (!pref.user_id) continue;
+      for (const pref of prefs) {
+        if (!pref.user_id) continue;
+        
+        // Skip if tz_offset is missing or null to avoid NaN math
+        if (pref.tz_offset === null || pref.tz_offset === undefined) {
+          console.warn(`Skipping user ${pref.user_id} due to missing tz_offset`);
+          continue;
+        }
 
-      // Calculate user's local time
-      // tz_offset is in minutes (e.g. -330 for IST is stored as -330)
-      // JS getTimezoneOffset() returns -330 for IST. 
-      // So LocalTime = UTC - OffsetInMinutes
-      const userLocalTime = new Date(now.getTime() - (pref.tz_offset * 60000));
-      const hours = userLocalTime.getUTCHours();
-      const minutes = userLocalTime.getUTCMinutes();
-      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      
-      // We check a 15-minute window to be safe if cron isn't exactly on the dot
-      const isMorningReminder = (pref.reminder_times || []).some(t => {
-        const [h, m] = t.split(':').map(Number);
-        // Match if within the same hour and same 15m block (assuming 15m cron)
-        return h === hours && Math.abs(m - minutes) < 15;
-      });
+        // Calculate user's local time
+        // tz_offset is in minutes (e.g. -330 for IST)
+        const userLocalTime = new Date(now.getTime() - (pref.tz_offset * 60000));
+        const hours = userLocalTime.getUTCHours();
+        const minutes = userLocalTime.getUTCMinutes();
+        const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        
+        // We check a 15-minute window to be safe if cron isn't exactly on the dot
+        const isMorningReminder = (pref.reminder_times || []).some(t => {
+          const [h, m] = t.split(':').map(Number);
+          return h === hours && Math.abs(m - minutes) < 15;
+        });
 
-      // 8 PM Nudge check
-      const is8PMNudge = pref.nudge_8pm_enabled && hours === 20 && minutes < 15;
+        // 8 PM Nudge check
+        const is8PMNudge = pref.nudge_8pm_enabled && hours === 20 && minutes < 15;
 
-      if (!isMorningReminder && !is8PMNudge) continue;
+        if (!isMorningReminder && !is8PMNudge) continue;
 
-      // 5. Gather personalized motivation data
-      const todayStr = userLocalTime.toISOString().split('T')[0];
+        // 5. Gather personalized motivation data
+        const todayStr = userLocalTime.toISOString().split('T')[0];
       const { data: activeTasks } = await supabase
         .from('study_plan')
         .select('status')
@@ -91,7 +94,7 @@ serve(async (req) => {
       const { data: subs } = await supabase.from('push_subscriptions').select('*').eq('user_id', pref.user_id);
       if (!subs) continue;
 
-      const payload = JSON.stringify({ title, body, icon: 'icon.ico', url: '/' });
+      const payload = JSON.stringify({ title, body, icon: '/icon.ico', url: '/' });
 
       for (const sub of subs) {
         try {

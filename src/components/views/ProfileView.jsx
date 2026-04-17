@@ -55,7 +55,8 @@ export default function ProfileView({ data, session }) {
           action: 'updateNotificationPreferences',
           patch: { 
             enabled: true,
-            active_plan_id: activePlan?.id || null
+            active_plan_id: activePlan?.id || null,
+            tz_offset: new Date().getTimezoneOffset()
           }
         });
       }
@@ -76,7 +77,8 @@ export default function ProfileView({ data, session }) {
       action: 'updateNotificationPreferences',
       patch: {
         ...patch,
-        active_plan_id: activePlan?.id || null
+        active_plan_id: activePlan?.id || null,
+        tz_offset: new Date().getTimezoneOffset()
       }
     });
   }, [mutation, activePlan]);
