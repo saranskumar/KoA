@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useDataMutation } from '../../hooks/useData';
 
 export default function OnboardingView({ onComplete }) {
-  const [choice, setChoice] = useState('ai_import');
+  const [choice, setChoice] = useState('s4');
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
   const mutation = useDataMutation();
@@ -98,7 +98,10 @@ export default function OnboardingView({ onComplete }) {
                 <Target size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[#313c1a] text-base mb-1">Start with S4 (Flexible)</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-[#313c1a] text-base">Start with S4 (Flexible)</h3>
+                  <span className="text-[10px] font-bold text-[#3c7f65] bg-[#bfd8bd]/40 border border-[#98c9a3] px-2 py-0.5 rounded-full uppercase tracking-wider">CS Students</span>
+                </div>
                 <p className="text-[#627833] text-sm leading-relaxed">
                   Import the S4 structure only. You&apos;ll build your own schedule day by day.
                 </p>

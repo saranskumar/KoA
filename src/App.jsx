@@ -86,7 +86,7 @@ function AppInner() {
   // ── Post-onboarding AI import (must check BEFORE is_onboarded gate) ──
   // When user picks AI import, is_onboarded is still false until seeding completes.
   if (postOnboardingRoute === 'aiImport') {
-    return <AIImportView data={data} onComplete={handlePlanSetupComplete} />;
+    return <AIImportView data={data} onComplete={handlePlanSetupComplete} onCancel={() => setPostOnboardingRoute(null)} />;
   }
 
   // ── Onboarding ──

@@ -173,7 +173,7 @@ function Step({ n, label, active, done }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function AIImportView({ onComplete }) {
+export default function AIImportView({ onComplete, onCancel }) {
   const [step, setStep] = useState(1); // 1 = copy prompt, 2 = paste result, 3 = import
   const [promptCopied, setPromptCopied] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
@@ -257,7 +257,16 @@ export default function AIImportView({ onComplete }) {
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
 
         {/* Header */}
-        <div className="text-center">
+        <div className="relative text-center">
+          {onCancel && (
+            <button 
+              onClick={onCancel}
+              className="absolute left-0 top-1.5 w-10 h-10 rounded-xl bg-white border border-[#edeec9] flex items-center justify-center text-[#627833] hover:bg-[#f8faf4] transition-colors shadow-sm"
+              aria-label="Go back"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+          )}
           <div className="mx-auto w-14 h-14 bg-gradient-to-br from-[#bfd8bd] to-[#77bfa3] flex items-center justify-center rounded-2xl mb-3 shadow-md">
             <Bot size={26} className="text-white" />
           </div>
@@ -276,45 +285,37 @@ export default function AIImportView({ onComplete }) {
 
         {/* ── STEP 1: Copy prompt ── */}
         <div className={`bg-white rounded-2xl border-2 overflow-hidden transition-all ${step === 1 ? 'border-[#77bfa3] shadow-[0_0_0_4px_rgba(119,191,163,0.08)]' : 'border-[#edeec9]'}`}>
-          <div className="p-4 flex items-start gap-3 border-b border-[#f0f4ea]">
-            <div className="w-8 h-8 bg-[#3c7f65] text-white rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-black">1</div>
+          <div className="p-5 flex items-start gap-4">
+            <div className="w-10 h-10 bg-[#3c7f65] text-white rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black">1</div>
             <div>
-              <h2 className="font-bold text-[#313c1a] text-sm">Copy the prompt</h2>
-              <p className="text-[#8aad60] text-xs mt-0.5">
-                Paste it into ChatGPT, Claude, or Gemini — then <strong>add your syllabus + exam dates</strong> below the line at the bottom.
-              </p>
+              <h2 className="font-bold text-[#313c1a] text-base">Instructions</h2>
+              <ul className="text-[#627833] text-sm mt-2 space-y-1.5 leading-relaxed list-decimal list-inside pr-2">
+                <li><strong>Copy</strong> the master prompt below.</li>
+                <li><strong>Paste</strong> it into ChatGPT, Claude, or Gemini.</li>
+                <li><strong>Add</strong> your syllabus & timetable at the bottom.</li>
+                <li><strong>Copy</strong> the AI's response and paste it in Step 2.</li>
+              </ul>
             </div>
           </div>
 
-          <div className="p-4 bg-[#0f1409]">
-            <pre className="text-[10.5px] font-mono text-[#8aad60] whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto select-all">
-              {PROMPT}
-            </pre>
-          </div>
-
-          <div className="p-3 bg-[#f8faf4]">
+          <div className="p-5 bg-[#f8faf4] border-t border-[#f0f4ea]">
             <button
               onClick={handleCopyPrompt}
-              className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+              className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all ${
                 promptCopied
                   ? 'bg-[#3c7f65] text-white'
-                  : 'bg-[#77bfa3] hover:bg-[#50a987] text-white shadow-[0_3px_12px_rgba(119,191,163,0.35)]'
+                  : 'bg-[#77bfa3] hover:bg-[#50a987] text-white shadow-[0_4px_16px_rgba(119,191,163,0.25)]'
               }`}
             >
-              {promptCopied ? <><Check size={16} /> Copied — now go to your AI</> : <><Copy size={16} /> Copy Prompt</>}
+              {promptCopied ? <><Check size={18} /> Copied! Proceed to your AI</> : <><Copy size={18} /> Copy AI Prompt</>}
             </button>
+            <p className="text-center text-[#8aad60] text-[10px] uppercase font-bold tracking-wider mt-3">
+              Included: Rules, Formatting & JSON Schema
+            </p>
           </div>
         </div>
 
-        {/* ── How-to hint between step 1 and 2 ── */}
-        {step >= 2 && (
-          <div className="bg-[#f0f7f4] border border-[#bfd8bd] rounded-xl p-3.5 flex gap-3 animate-in slide-in-from-top-2 duration-300">
-            <Sparkles size={16} className="text-[#3c7f65] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-[#3c7f65] font-medium leading-relaxed">
-              Send the prompt to your AI. Include your subjects, exam dates, and topics below the line it says <em>"PASTE YOUR SYLLABUS…"</em>. Once the AI replies with JSON, copy the entire response and paste it below.
-            </p>
-          </div>
-        )}
+
 
         {/* ── STEP 2: Paste AI response ── */}
         <div className={`bg-white rounded-2xl border-2 overflow-hidden transition-all ${step >= 2 ? 'border-[#77bfa3] shadow-[0_0_0_4px_rgba(119,191,163,0.08)]' : 'border-[#edeec9] opacity-40 pointer-events-none'}`}>
@@ -333,7 +334,7 @@ export default function AIImportView({ onComplete }) {
                 onChange={(e) => { setJsonInput(e.target.value); if (step === 2) setStep(2); }}
                 onPaste={() => setTimeout(() => setStep(validationResult?.valid ? 3 : 2), 100)}
                 placeholder={'Paste the JSON from your AI here…\n\n{\n  "plan": { "title": "..." },\n  "subjects": [...],\n  "study_plan": [...]\n}'}
-                className="w-full h-44 p-3 bg-[#0f1409] text-[#b8cd8a] font-mono border border-[#2a3318] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#77bfa3] text-[11px] leading-relaxed"
+                className="w-full h-44 p-3 bg-[#f8faf4] text-[#3c7f65] font-mono border border-[#edeec9] shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-[#77bfa3] focus:bg-white transition-colors text-[11px] leading-relaxed"
               />
               {!jsonInput && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
