@@ -102,7 +102,17 @@ serve(async (req) => {
       const { data: subs } = await supabase.from('push_subscriptions').select('*').eq('user_id', pref.user_id);
       if (!subs) continue;
 
-      const payload = JSON.stringify({ title, body, icon: '/icon.ico', url: '/' });
+      const payload = JSON.stringify({
+        title,
+        body,
+        icon: '/icon.ico',
+        url: '/',
+        actions: [
+          { action: 'start', title: '🚀 Start Session' },
+          { action: 'dismiss', title: '✕ Dismiss' }
+        ],
+        requireInteraction: true
+      });
 
       for (const sub of subs) {
         try {

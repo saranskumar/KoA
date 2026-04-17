@@ -26,32 +26,39 @@ self.addEventListener('push', function(event) {
   const options = {
     body: data.body || "It's time to review your daily tasks.",
     icon: data.icon || '/icon.ico',
-    badge: '/icon.ico', // Used in Android status bar
+    badge: '/icon.ico',
     vibrate: [200, 100, 200],
-    data: {
-      url: data.url || '/'
-    }
+    data: { url: data.url || '/' },
+    actions: data.actions || [
+      { action: 'start', title: '🚀 Start Session' },
+      { action: 'dismiss', title: '✕ Dismiss' }
+    ],
+    requireInteraction: data.requireInteraction !== false
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Handle Notification Clicks
+// Handle Notification Clicks (body tap + action buttons)
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  
-  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+
+  // 'dismiss' action — just close, do nothing
+  if (event.action === 'dismiss') return;
+
+  // 'start' action or body tap — open/focus the app
+  const urlToOpen = new URL(event.notification.data.url || '/', self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Check if there is already a window/tab open with the target URL
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) {
+        if ('focus' in client) {
+          // Navigate to the target URL and focus
+          client.navigate(urlToOpen);
           return client.focus();
         }
       }
-      // If not, open a new window
       if (self.clients.openWindow) {
         return self.clients.openWindow(urlToOpen);
       }
