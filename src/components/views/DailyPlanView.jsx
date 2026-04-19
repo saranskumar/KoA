@@ -88,7 +88,6 @@ export default function DailyPlanView({ data, session }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const userName = profile?.display_name || profile?.full_name || session?.user?.email?.split('@')[0] || 'Student';
-  const avatarUrl = profile?.avatar_url || getSuperheroAvatar(session?.user?.email || userName);
 
   const examToday = subjects.find(s => s.exam_date === todayStr);
 
@@ -170,9 +169,6 @@ export default function DailyPlanView({ data, session }) {
         <div className="absolute -top-8 -right-8 w-40 h-40 bg-[#bfd8bd]/20 rounded-full blur-2xl pointer-events-none" />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f8faf4] to-[#edeec9] border-2 border-white shadow-md flex-shrink-0 overflow-hidden">
-               <img src={avatarUrl} alt="Hero" className="w-full h-full object-cover" />
-            </div>
             <div>
               <p className="text-[#98c9a3] font-bold text-[10px] uppercase tracking-[0.2em] mb-0.5">{greeting}</p>
               <h2 className="text-2xl md:text-3xl font-black text-[#313c1a] tracking-tight leading-none">
