@@ -214,14 +214,22 @@ function Spinner({ text }) {
 }
 
 function NotificationAwarenessModal() {
-  const [closed, setClosed] = useState(false);
+  const [closed, setClosed] = useState(() => localStorage.getItem('koa_notif_seen') === 'true');
 
   if (closed) return null;
 
+  const handleClose = () => {
+    localStorage.setItem('koa_notif_seen', 'true');
+    setClosed(true);
+  };
+
   const requestPermission = async () => {
     if ('Notification' in window) {
-      await Notification.requestPermission();
-      setClosed(true); // Close modal regardless of outcome, they decided
+      // Use catch to handle mobile environments where insecure prompt fails
+      Notification.requestPermission().catch(console.warn);
+      handleClose();
+    } else {
+      handleClose();
     }
   };
 
@@ -258,8 +266,8 @@ function NotificationAwarenessModal() {
             Enable Notifications
           </button>
           <button 
-            onClick={() => setClosed(true)}
-            className="w-full py-3 text-[#b8cd8a] hover:text-[#3c7f65] font-bold text-xs uppercase tracking-wider transition-colors"
+            onClick={handleClose}
+            className="w-full py-4 bg-transparent text-[#627833] hover:text-[#313c1a] font-bold text-xs uppercase tracking-widest transition-all"
           >
             Maybe Later
           </button>
