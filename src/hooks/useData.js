@@ -141,33 +141,57 @@ export function useAppData(userId) {
       };
       syncProfileLeaderboardState();
 
-      // Auto-schedule full revision tasks 2 days before exams
+      // Auto-schedule full revision tasks between exams
       const autoSeedRevisions = async () => {
-        if (!activePlan) return;
+        if (!activePlan || subjects.length === 0) return;
+        
+        const examSubjects = subjects
+          .filter(s => s.exam_date)
+          .sort((a, b) => new Date(a.exam_date) - new Date(b.exam_date));
+          
+        if (examSubjects.length === 0) return;
+
         const newTasks = [];
-        subjects.forEach(subject => {
-          if (subject.exam_date) {
-            const examDate = new Date(subject.exam_date);
-            examDate.setDate(examDate.getDate() - 2);
-            const revisionDateStr = examDate.toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        examSubjects.forEach((subject, idx) => {
+          let startDate;
+          if (idx === 0) {
+            // For the first exam, start 2 days before
+            const firstExamDate = new Date(subject.exam_date);
+            firstExamDate.setDate(firstExamDate.getDate() - 2);
+            startDate = firstExamDate;
+          } else {
+            // For subsequent exams, start on the day of the previous exam
+            startDate = new Date(examSubjects[idx - 1].exam_date);
+          }
+
+          const endDate = new Date(subject.exam_date);
+          const current = new Date(startDate);
+
+          // Iterate through days up to (but not including) the exam day
+          while (current < endDate) {
+            const dateStr = current.toISOString().split('T')[0];
             const title = `Full Revision: ${subject.name}`;
             
-            // Check if this task already exists
-            const exists = tasks.some(t => t.subject_id === subject.id && t.date === revisionDateStr && t.title === title);
-            
-            if (!exists) {
-              newTasks.push({
-                id: crypto.randomUUID(),
-                user_id: userId,
-                plan_id: activePlan.id,
-                subject_id: subject.id,
-                date: revisionDateStr,
-                title: title,
-                planned_minutes: 120, // Default 2 hours for full revision
-                status: 'pending',
-                task_type: 'main'
-              });
+            // Limit seeding to dates from today onwards + prevent duplicates
+            if (dateStr >= todayStr) {
+               const exists = tasks.some(t => t.subject_id === subject.id && t.date === dateStr && t.title === title);
+               if (!exists) {
+                 newTasks.push({
+                   id: crypto.randomUUID(),
+                   user_id: userId,
+                   plan_id: activePlan.id,
+                   subject_id: subject.id,
+                   date: dateStr,
+                   title: title,
+                   planned_minutes: 120,
+                   status: 'pending',
+                   task_type: 'main'
+                 });
+               }
             }
+            current.setDate(current.getDate() + 1);
           }
         });
 
