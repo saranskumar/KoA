@@ -71,18 +71,26 @@ function EmptyStateToday({ subjects, activePlan }) {
 
 
 export default function DailyPlanView({ data, session }) {
-  const { dashboard, subjects, activePlan, profile } = data || {};
+  const { dashboard, subjects = [], activePlan, profile } = data || {};
   const { todaysTasks = [], overdueTasks = [], upcomingTasks = [] } = dashboard || {};
+  const mutation = useDataMutation();
+
+  const handleAction = (taskId, action) => {
+    mutation.mutate({ action, taskId });
+  };
 
   const completedToday = todaysTasks.filter(t => t.status === 'completed').length;
   const totalToday = todaysTasks.length;
   const progressPct = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const todayStr = new Date().toISOString().split('T')[0];
+  const displayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const userName = profile?.display_name || profile?.full_name || session?.user?.email?.split('@')[0] || 'Student';
   const avatarUrl = profile?.avatar_url || getSuperheroAvatar(session?.user?.email || userName);
+
+  const examToday = subjects.find(s => s.exam_date === todayStr);
 
   const TaskCard = ({ task, isOverdue = false }) => {
     const subject = subjects?.find(s => s.id === task.subject_id);
@@ -215,7 +223,7 @@ export default function DailyPlanView({ data, session }) {
       </div>
 
       {/* Exam Day Motivational Banner */}
-      {subjects.some(s => s.exam_date === new Date().toISOString().split('T')[0]) && (
+      {examToday && (
         <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-[2rem] p-6 text-white shadow-xl shadow-indigo-200 overflow-hidden relative group animate-in zoom-in duration-500">
            <div className="absolute top-0 right-0 p-2 opacity-10 transform scale-150 translate-x-12 -translate-y-12">
               <Shield size={160} />
@@ -228,7 +236,7 @@ export default function DailyPlanView({ data, session }) {
                  <div>
                     <h3 className="text-xl md:text-2xl font-black tracking-tight leading-none mb-1">Big Day! Best of Luck! 🚀</h3>
                     <p className="text-sm font-bold opacity-80">
-                      You've prepared well. Stay calm, focused, and crush your {subjects.find(s => s.exam_date === new Date().toISOString().split('T')[0]).name} exam!
+                      You've prepared well. Stay calm, focused, and crush your {examToday.name} exam!
                     </p>
                  </div>
               </div>
