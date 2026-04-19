@@ -129,7 +129,8 @@ export function useAppData(session) {
         
         // Auto-provision display name and opt-in if missing
         const isNewUser = !profile.display_name;
-        const needsUpdate = isNewUser || profile.current_streak !== streak || profile.completed_tasks !== activeCompleted;
+        const isMissingPublicName = !profile.public_name;
+        const needsUpdate = isNewUser || isMissingPublicName || profile.current_streak !== streak || profile.completed_tasks !== activeCompleted;
         
         if (needsUpdate) {
            const patch = {
@@ -142,9 +143,11 @@ export function useAppData(session) {
              // Priority: Google Real Name -> Random Identity
              const googleName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name;
              patch.display_name = googleName || generateRandomName();
-             
-             // Ensure public_name exists if we just set a real display_name
-             patch.public_name = profile.public_name || generateRandomName();
+             patch.show_on_leaderboard = true;
+           }
+
+           if (isMissingPublicName) {
+             patch.public_name = generateRandomName();
              patch.show_on_leaderboard = true;
            }
            

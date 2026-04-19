@@ -15,7 +15,7 @@ import SubjectDetailView from './components/views/SubjectDetailView';
 import AnalyticsView from './components/views/AnalyticsView';
 import ProfileView from './components/views/ProfileView';
 
-import { CalendarDays, BookOpen, BarChart2, User, Bell, CalendarPlus } from 'lucide-react';
+import { CalendarDays, BookOpen, BarChart2, User, Bell, CalendarPlus, CheckCircle2 } from 'lucide-react';
 
 
 const queryClient = new QueryClient({

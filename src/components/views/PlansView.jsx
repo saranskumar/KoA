@@ -117,7 +117,7 @@ function SubjectManagerModal({ plan, subjects, subjectTemplates = [], onClose, m
         action: 'addSubject',
         planId: plan.id,
         subject: {
-          id: crypto.randomUUID(),
+          id: generateId(),
           name: label,
           exam_date: null,
           template_subject_id: isCustom ? 'custom' : templateId,

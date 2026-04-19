@@ -179,7 +179,7 @@ export default function LeaderboardView({ data }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className={`font-black text-sm truncate ${isCurrentUser ? 'text-[#b45309]' : 'text-[#313c1a]'}`}>
-                      {user.public_name || user.display_name}
+                      {user.public_name || "Anonymous Student"}
                     </h4>
                     {isCurrentUser && (
                       <span className="text-[7px] font-black bg-[#fb923c] text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">You</span>
@@ -217,7 +217,7 @@ export default function LeaderboardView({ data }) {
               
               <div className="flex-1 min-w-0">
                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-[#313c1a] truncate">{profile?.public_name || profile?.display_name}</span>
+                    <span className="text-xs font-black text-[#313c1a] truncate">{profile?.public_name || "Anonymous Student"}</span>
                     <span className={`text-[8px] font-black uppercase tracking-[0.1em] ${myLeague.text}`}>{myLeague.name} League</span>
                  </div>
                  
