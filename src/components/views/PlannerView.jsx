@@ -1,3 +1,4 @@
+import {
   Calendar, Check, Plus, X, ChevronLeft, ChevronRight,
   Clock, CheckCircle, BookOpen, Layers, AlignLeft, Shield
 } from 'lucide-react';
