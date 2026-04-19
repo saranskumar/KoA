@@ -3,7 +3,7 @@ import {
   User, LogOut, BookOpen, Bell, BellOff, Info,
   Trophy, Save, Loader2, Sparkles, RefreshCw,
   Settings, LayoutGrid, Check, ShieldCheck, Mail, MapPin,
-  ChevronDown, Plus, Trash2, Zap
+  ChevronDown, Plus, Trash2, Zap, X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useNotifications } from '../../hooks/useNotifications';
