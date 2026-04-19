@@ -9,12 +9,13 @@ import OnboardingView from './components/views/OnboardingView';
 import PlanSetupView from './components/views/PlanSetupView';
 import AIImportView from './components/views/AIImportView';
 import DailyPlanView from './components/views/DailyPlanView';
+import PlannerView from './components/views/PlannerView';
 import SyllabusView from './components/views/SyllabusView';
 import SubjectDetailView from './components/views/SubjectDetailView';
 import AnalyticsView from './components/views/AnalyticsView';
 import ProfileView from './components/views/ProfileView';
 
-import { CalendarDays, BookOpen, BarChart2, User, Bell, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, BookOpen, BarChart2, User, Bell, CalendarPlus } from 'lucide-react';
 
 
 const queryClient = new QueryClient({
@@ -24,6 +25,7 @@ const queryClient = new QueryClient({
 // ─── Page title map ───────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   Today:         'Today',
+  Planner:       'Planner',
   Syllabus:      'Subjects',
   SubjectDetail: null,          // uses subject name in view header
   Plans:         'Plans',
@@ -112,6 +114,7 @@ function AppInner() {
   // ── Nav config ──
   const NAV = [
     { id: 'Today',       label: 'Today',       Icon: CalendarDays },
+    { id: 'Planner',     label: 'Planner',     Icon: CalendarPlus },
     { id: 'Syllabus',    label: 'Subjects',    Icon: BookOpen },
     { id: 'Stats',       label: 'Stats',       Icon: BarChart2 },
     { id: 'Profile',     label: 'Profile',     Icon: User },
@@ -124,12 +127,13 @@ function AppInner() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'Today':         return <DailyPlanView data={data} />;
+      case 'Today':         return <DailyPlanView data={data} session={session} />;
+      case 'Planner':       return <PlannerView data={data} />;
       case 'Syllabus':      return <SyllabusView data={data} />;
       case 'SubjectDetail': return <SubjectDetailView data={data} />;
       case 'Stats':         return <AnalyticsView data={data} />;
       case 'Profile':       return <ProfileView data={data} session={session} />;
-      default:              return <DailyPlanView data={data} />;
+      default:              return <DailyPlanView data={data} session={session} />;
     }
   };
 

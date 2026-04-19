@@ -141,6 +141,42 @@ export function useAppData(userId) {
       };
       syncProfileLeaderboardState();
 
+      // Auto-schedule full revision tasks 2 days before exams
+      const autoSeedRevisions = async () => {
+        if (!activePlan) return;
+        const newTasks = [];
+        subjects.forEach(subject => {
+          if (subject.exam_date) {
+            const examDate = new Date(subject.exam_date);
+            examDate.setDate(examDate.getDate() - 2);
+            const revisionDateStr = examDate.toISOString().split('T')[0];
+            const title = `Full Revision: ${subject.name}`;
+            
+            // Check if this task already exists
+            const exists = tasks.some(t => t.subject_id === subject.id && t.date === revisionDateStr && t.title === title);
+            
+            if (!exists) {
+              newTasks.push({
+                id: crypto.randomUUID(),
+                user_id: userId,
+                plan_id: activePlan.id,
+                subject_id: subject.id,
+                date: revisionDateStr,
+                title: title,
+                planned_minutes: 120, // Default 2 hours for full revision
+                status: 'pending',
+                task_type: 'main'
+              });
+            }
+          }
+        });
+
+        if (newTasks.length > 0) {
+          supabase.from('study_plan').insert(newTasks).then();
+        }
+      };
+      autoSeedRevisions();
+
       return {
         profile,
         userPreferences,
@@ -398,11 +434,21 @@ export function useDataMutation() {
 
       // ── Task management ──
       else if (action === 'addTask') {
-        const { error } = await supabase.from('study_plan').insert({
-          ...payload.task,
-          plan_id: payload.planId || activePlanId,
-          user_id: userId,
-        });
+        let rows = [];
+        if (Array.isArray(payload.task)) {
+          rows = payload.task.map(t => ({
+            ...t,
+            plan_id: payload.planId || activePlanId,
+            user_id: userId,
+          }));
+        } else {
+          rows = [{
+            ...payload.task,
+            plan_id: payload.planId || activePlanId,
+            user_id: userId,
+          }];
+        }
+        const { error } = await supabase.from('study_plan').insert(rows);
         if (error) throw error;
       }
 

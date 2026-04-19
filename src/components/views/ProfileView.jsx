@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   User, LogOut, BookOpen, Bell, BellOff, Info,
-  Trophy, Save, Loader2, Sparkles, RefreshCw,
+  Trophy, Save, Loader2, Sparkles, RefreshCw, X,
   Settings, LayoutGrid, Check, ShieldCheck, Mail, MapPin,
   ChevronDown, Plus, Trash2, Zap
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useDataMutation } from '../../hooks/useData';
-import { generateRandomName, generateNameOptions } from '../../lib/names';
+import { 
+  HEROES, VIBES, BOTS, PIXELS, 
+  getHeroUrl, getVibeUrl, getBotUrl, getPixelUrl, 
+  getSuperheroAvatar 
+} from '../../lib/avatars';
 import PlansView from './PlansView';
 import LeaderboardView from './LeaderboardView';
 import CustomClockPicker from '../ui/CustomClockPicker';
@@ -29,6 +33,8 @@ export default function ProfileView({ data, session }) {
   const [nudge8pmEnabled, setNudge8pmEnabled] = useState(userPreferences?.nudge_8pm_enabled !== false);
 
   const [nameSuggestions, setNameSuggestions] = useState([]);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [avatarCategory, setAvatarCategory] = useState('Heroes'); // 'Heroes', 'Vibes', 'Bots', 'Pixels'
 
   useEffect(() => {
     if (userPreferences?.reminder_times) setReminderTimes(userPreferences.reminder_times);
@@ -140,8 +146,9 @@ export default function ProfileView({ data, session }) {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const userName = profile?.full_name || session?.user?.email?.split('@')[0] || 'Student';
+  const userName = profile?.display_name || profile?.full_name || session?.user?.email?.split('@')[0] || 'Student';
   const userEmail = session?.user?.email || '';
+  const avatarUrl = profile?.avatar_url || getSuperheroAvatar(userEmail || userName);
 
   // ─── Sub-views ───
 
@@ -173,18 +180,21 @@ export default function ProfileView({ data, session }) {
         <div className="absolute -inset-1 bg-gradient-to-r from-[#77bfa3] to-indigo-400 rounded-[2rem] blur opacity-10"></div>
         <div className="clay-card p-1 relative bg-white overflow-hidden">
           <div className="p-7 flex items-center gap-6">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#f8faf4] to-[#edeec9] border-2 border-white shadow-inner flex items-center justify-center flex-shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="avatar" className="w-full h-full rounded-2xl object-cover" />
-                ) : (
-                  <User size={32} className="text-[#3c7f65]" />
-                )}
+            <button 
+              onClick={() => setShowAvatarPicker(true)}
+              className="relative group/avatar active:scale-95 transition-transform"
+              title="Change Hero"
+            >
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#f8faf4] to-[#edeec9] border-2 border-white shadow-inner flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity">
+                   <Plus className="text-white" size={24} />
+                </div>
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-xl shadow-md border border-[#edeec9] flex items-center justify-center text-[#77bfa3]">
                 <ShieldCheck size={16} />
               </div>
-            </div>
+            </button>
             <div className="min-w-0 flex-1">
               <h2 className="text-2xl font-black text-[#313c1a] truncate leading-tight">{userName}</h2>
               <div className="flex flex-col gap-1 mt-1">
@@ -445,6 +455,146 @@ export default function ProfileView({ data, session }) {
         <Info size={14} className="group-hover:text-[#77bfa3] transition-colors" />
         <div className="text-[9px] font-black tracking-[0.3em] uppercase">KōA · Production v2.1</div>
       </div>
+
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-6 px-2">
+              <div>
+                <h3 className="text-xl font-black text-[#313c1a]">Choose Identity</h3>
+              </div>
+              <button 
+                onClick={() => setShowAvatarPicker(false)} 
+                className="w-10 h-10 rounded-2xl bg-[#f8faf4] flex items-center justify-center text-[#627833] hover:text-[#313c1a] transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 px-2">
+              {['Heroes', 'Vibes', 'Bots', 'Pixels'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setAvatarCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                    avatarCategory === cat 
+                      ? 'bg-[#77bfa3] text-white shadow-md shadow-[#77bfa3]/30' 
+                      : 'bg-[#f8faf4] text-[#98c9a3] hover:text-[#3c7f65] hover:bg-[#edeec9]/50'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-1 pb-4 custom-scrollbar">
+              <div className="grid grid-cols-3 gap-3 px-2">
+                {/* Default Choice in 'Heroes' tab */}
+                {avatarCategory === 'Heroes' && (
+                  <button
+                    onClick={() => {
+                      saveProfileChange({ avatar_url: null });
+                      setShowAvatarPicker(false);
+                    }}
+                    className="group relative flex flex-col items-center gap-2"
+                  >
+                    <div className={`w-full aspect-square rounded-2xl border-2 transition-all flex items-center justify-center bg-[#f8faf4] ${!profile?.avatar_url ? 'border-[#77bfa3] p-1' : 'border-[#edeec9] hover:border-[#bfd8bd]'}`}>
+                      <div className="w-full h-full rounded-xl overflow-hidden bg-gradient-to-br from-white to-[#edeec9] flex items-center justify-center">
+                        <img src={getSuperheroAvatar(userEmail || userName)} className="w-full h-full object-cover opacity-50" />
+                        <RefreshCw className="absolute text-[#3c7f65]" size={20} />
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#627833]">Default</span>
+                  </button>
+                )}
+
+                {/* Heroes Mapping */}
+                {avatarCategory === 'Heroes' && HEROES.map(heroKey => {
+                  const url = getHeroUrl(heroKey);
+                  const isSelected = profile?.avatar_url === url;
+                  const heroName = heroKey.split('-').slice(1).join(' ');
+
+                  return (
+                    <button
+                      key={heroKey}
+                      onClick={() => { saveProfileChange({ avatar_url: url }); setShowAvatarPicker(false); }}
+                      className="group relative flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-full aspect-square rounded-2xl border-2 transition-all p-1 overflow-hidden ${isSelected ? 'border-[#77bfa3] scale-105 shadow-md flex-shrink-0' : 'border-[#edeec9] hover:border-[#bfd8bd] hover:scale-[1.02]'}`}>
+                        <img src={url} alt={heroKey} className="w-full h-full rounded-xl object-cover" />
+                        {isSelected && (
+                          <div className="absolute top-0 right-0 w-5 h-5 bg-[#77bfa3] text-white rounded-lg flex items-center justify-center shadow-lg animate-in zoom-in">
+                            <Check size={10} strokeWidth={4} />
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-tight text-[#627833] text-center truncate w-full">{heroName}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Vibes Mapping */}
+                {avatarCategory === 'Vibes' && VIBES.map(seed => {
+                  const url = getVibeUrl(seed);
+                  const isSelected = profile?.avatar_url === url;
+
+                  return (
+                    <button
+                      key={seed}
+                      onClick={() => { saveProfileChange({ avatar_url: url }); setShowAvatarPicker(false); }}
+                      className="group relative flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-full aspect-square rounded-2xl border-2 transition-all p-1 overflow-hidden bg-[#f8faf4] ${isSelected ? 'border-[#77bfa3] scale-105 shadow-md' : 'border-[#edeec9] hover:border-[#bfd8bd]'}`}>
+                        <img src={url} alt={seed} className="w-full h-full rounded-xl object-cover" />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-tight text-[#627833]">{seed}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Bots Mapping */}
+                {avatarCategory === 'Bots' && BOTS.map(seed => {
+                  const url = getBotUrl(seed);
+                  const isSelected = profile?.avatar_url === url;
+                  return (
+                    <button
+                      key={seed}
+                      onClick={() => { saveProfileChange({ avatar_url: url }); setShowAvatarPicker(false); }}
+                      className="group relative flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-full aspect-square rounded-2xl border-2 transition-all p-1 overflow-hidden bg-[#f8faf4] ${isSelected ? 'border-[#77bfa3] scale-105 shadow-md' : 'border-[#edeec9] hover:border-[#bfd8bd]'}`}>
+                        <img src={url} alt={seed} className="w-full h-full rounded-xl object-cover" />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-tight text-[#627833]">{seed}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Pixels Mapping */}
+                {avatarCategory === 'Pixels' && PIXELS.map(seed => {
+                  const url = getPixelUrl(seed);
+                  const isSelected = profile?.avatar_url === url;
+                  return (
+                    <button
+                      key={seed}
+                      onClick={() => { saveProfileChange({ avatar_url: url }); setShowAvatarPicker(false); }}
+                      className="group relative flex flex-col items-center gap-2"
+                    >
+                      <div className={`w-full aspect-square rounded-2xl border-2 transition-all p-1 overflow-hidden bg-[#f8faf4] ${isSelected ? 'border-[#77bfa3] scale-105 shadow-md' : 'border-[#edeec9] hover:border-[#bfd8bd]'}`}>
+                        <img src={url} alt={seed} className="w-full h-full rounded-xl object-cover" />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-tight text-[#627833]">{seed}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

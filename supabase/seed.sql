@@ -1,16 +1,37 @@
 -- ==============================================
+-- PLAN TEMPLATES & SLOTS
+-- ==============================================
+
+INSERT INTO public.plan_templates (id, title, description, is_s4) VALUES
+('11111111-1111-1111-1111-111111111111', 'S4 Exam Prep', 'Semester 4 university exam preparation', true)
+ON CONFLICT (id) DO NOTHING;
+
+
+
+-- ==============================================
 -- SUBJECT TEMPLATES
 -- ==============================================
-INSERT INTO public.subject_templates (id, name, code, internal_scored, internal_total, external_total, target_total, priority, focus, exam_date, sort_order) VALUES
-('maths', 'Maths', 'GAMAT401', 31, 40, 60, 70, 'score_booster', 'Euler, Hamiltonian, Trees, algorithms, and PYQs', '2026-04-27', 1),
-('ai', 'AI', 'PCCMT402', 29, 40, 60, 70, 'balanced', 'BFS, DFS, A*, minimax, alpha-beta, logic, and planning', '2026-04-29', 2),
-('os', 'OS', 'PCCST403', 26, 40, 60, 70, 'make_or_break', 'Scheduling, deadlocks, memory, file systems + repeat twice', '2026-05-04', 3),
-('dbms', 'DBMS', 'PBCMT404', 42, 50, 40, 70, 'free_marks', 'SQL, normalization, ER diagrams, and transactions', '2026-05-07', 4),
-('adsa', 'ADSA', 'PECST495', 26, 30, 70, 70, 'score_booster', 'Sorting, graphs, complexity, and PYQs heavy', '2026-05-11', 5),
-('economics', 'Economics', 'UCHUT346', 37, 50, 50, 70, 'balanced', 'Readable long answers, taxation, and writing practice', '2026-05-14', 6),
-('coa', 'COA', 'PCCST405', 28, 50, 50, 70, 'make_or_break', 'Microarchitecture, Pipelining, Caches, and DMA', NULL, 7),
-('soft', 'Soft Computing', 'PECST496', 32, 50, 50, 70, 'balanced', 'Neural Networks, Fuzzy Logic, Genetic Algorithms', NULL, 8)
+INSERT INTO public.subject_templates (id, name, code, priority, focus, exam_date, sort_order) VALUES
+('maths', 'Maths', 'GAMAT401', 'score_booster', 'Euler, Hamiltonian, Trees, algorithms, and PYQs', '2026-04-27', 1),
+('ai', 'AI', 'PCCMT402', 'balanced', 'BFS, DFS, A*, minimax, alpha-beta, logic, and planning', '2026-04-29', 2),
+('os', 'OS', 'PCCST403', 'make_or_break', 'Scheduling, deadlocks, memory, file systems + repeat twice', '2026-05-04', 3),
+('dbms', 'DBMS', 'PBCMT404', 'free_marks', 'SQL, normalization, ER diagrams, and transactions', '2026-05-07', 4),
+('adsa', 'ADSA', 'PECST495', 'score_booster', 'Sorting, graphs, complexity, and PYQs heavy', '2026-05-11', 5),
+('economics', 'Economics', 'UCHUT346', 'balanced', 'Readable long answers, taxation, and writing practice', '2026-05-14', 6),
+('coa', 'COA', 'PCCST405', 'make_or_break', 'Microarchitecture, Pipelining, Caches, and DMA', NULL, 7),
+('soft', 'Soft Computing', 'PECST496', 'balanced', 'Neural Networks, Fuzzy Logic, Genetic Algorithms', NULL, 8)
 ON CONFLICT (id) DO UPDATE SET focus = EXCLUDED.focus, exam_date = EXCLUDED.exam_date, sort_order = EXCLUDED.sort_order;
+
+-- ==============================================
+-- PLAN TEMPLATE SLOTS
+-- ==============================================
+INSERT INTO public.plan_template_slots (plan_template_id, subject_template_id, label, exam_date, sort_order) VALUES
+('11111111-1111-1111-1111-111111111111', 'maths', 'Mathematics 4', '2026-04-27', 1),
+('11111111-1111-1111-1111-111111111111', 'ai', 'Artificial Intelligence', '2026-04-29', 2),
+('11111111-1111-1111-1111-111111111111', 'os', 'Operating Systems', '2026-05-04', 3),
+('11111111-1111-1111-1111-111111111111', 'dbms', 'Database Management', '2026-05-07', 4),
+('11111111-1111-1111-1111-111111111111', 'adsa', 'ADSA', '2026-05-11', 5),
+('11111111-1111-1111-1111-111111111111', 'economics', 'Economics', '2026-05-14', 6);
 
 -- ==============================================
 -- MODULE TEMPLATES

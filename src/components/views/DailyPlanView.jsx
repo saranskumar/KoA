@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useDataMutation } from '../../hooks/useData';
 import { useAppStore } from '../../store/useAppStore';
+import { getSuperheroAvatar } from '../../lib/avatars';
 
 const STATUS_COLORS = {
   completed: 'text-[#3c7f65] bg-[#bfd8bd]/20 border-[#98c9a3]/40',
@@ -69,58 +70,19 @@ function EmptyStateToday({ subjects, activePlan }) {
 
 
 
-export default function DailyPlanView({ data }) {
-  const { dashboard, subjects, activePlan } = data || {};
+export default function DailyPlanView({ data, session }) {
+  const { dashboard, subjects, activePlan, profile } = data || {};
   const { todaysTasks = [], overdueTasks = [], upcomingTasks = [] } = dashboard || {};
-
-  const mutation = useDataMutation();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ subjectId: '', title: '', plannedMinutes: 60 });
-  const [isAdding, setIsAdding] = useState(false);
-
-
-  const handleAction = (taskId, actionType) => {
-    if (actionType === 'complete') {
-      mutation.mutate({ action: 'updateTask', taskId, patch: { status: 'completed' } });
-    } else if (actionType === 'skip') {
-      mutation.mutate({ action: 'updateTask', taskId, patch: { status: 'skipped' } });
-    } else if (actionType === 'unskip') {
-      mutation.mutate({ action: 'updateTask', taskId, patch: { status: 'pending' } });
-    } else if (actionType === 'move-tomorrow') {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      mutation.mutate({ action: 'rescheduleTask', taskId, date: d.toISOString().split('T')[0] });
-    }
-  };
-
-  const handleAddTask = async () => {
-    if (!addForm.title.trim()) return;
-    setIsAdding(true);
-    try {
-      await mutation.mutateAsync({
-        action: 'addTask',
-        task: {
-          id: crypto.randomUUID(),
-          title: addForm.title,
-          subject_id: addForm.subjectId || null,
-          date: new Date().toISOString().split('T')[0],
-          planned_minutes: parseInt(addForm.plannedMinutes) || 60,
-          status: 'pending',
-        }
-      });
-      setShowAddModal(false);
-      setAddForm({ subjectId: '', title: '', plannedMinutes: 60 });
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   const completedToday = todaysTasks.filter(t => t.status === 'completed').length;
   const totalToday = todaysTasks.length;
   const progressPct = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const userName = profile?.display_name || profile?.full_name || session?.user?.email?.split('@')[0] || 'Student';
+  const avatarUrl = profile?.avatar_url || getSuperheroAvatar(session?.user?.email || userName);
 
   const TaskCard = ({ task, isOverdue = false }) => {
     const subject = subjects?.find(s => s.id === task.subject_id);
@@ -199,16 +161,21 @@ export default function DailyPlanView({ data }) {
       <div className="clay-card bg-white p-6 md:p-8 relative overflow-hidden">
         <div className="absolute -top-8 -right-8 w-40 h-40 bg-[#bfd8bd]/20 rounded-full blur-2xl pointer-events-none" />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-          <div>
-            <p className="text-[#98c9a3] font-bold text-xs uppercase tracking-widest mb-1">{todayStr}</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-[#313c1a] tracking-tight">
-              {activePlan ? activePlan.title : "Today's Study"}
-            </h2>
-            {dashboard?.nextExam && (
-              <p className="text-[#627833] text-sm font-medium mt-1">
-                Next: <span className="text-[#3c7f65] font-bold">{dashboard.nextExam.name}</span> in {Math.max(0, dashboard.nextExam.daysLeft)} days
-              </p>
-            )}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f8faf4] to-[#edeec9] border-2 border-white shadow-md flex-shrink-0 overflow-hidden">
+               <img src={avatarUrl} alt="Hero" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p className="text-[#98c9a3] font-bold text-[10px] uppercase tracking-[0.2em] mb-0.5">{greeting}</p>
+              <h2 className="text-2xl md:text-3xl font-black text-[#313c1a] tracking-tight leading-none">
+                {userName}
+              </h2>
+              {dashboard?.nextExam && (
+                <p className="text-[#627833] text-[10px] font-black uppercase tracking-widest mt-1.5 opacity-60">
+                  {dashboard.nextExam.name} · {Math.max(0, dashboard.nextExam.daysLeft)} days left
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -261,15 +228,6 @@ export default function DailyPlanView({ data }) {
             <Calendar size={15} className="text-[#50a987]" />
             <h3 className="text-sm font-bold text-[#50a987] uppercase tracking-wide">Today ({totalToday})</h3>
           </div>
-          <button
-            onClick={() => {
-              setAddForm(f => ({ ...f, subjectId: dashboard?.nextExam?.id || '' }));
-              setShowAddModal(true);
-            }}
-            className="h-8 px-3 text-xs font-bold text-[#3c7f65] bg-[#bfd8bd]/20 hover:bg-[#bfd8bd]/40 border border-[#dde7c7] rounded-lg flex items-center gap-1 transition-all"
-          >
-            <Plus size={13} /> Add Task
-          </button>
         </div>
         {totalToday === 0 ? (
           <EmptyStateToday subjects={subjects} activePlan={activePlan} />
@@ -308,46 +266,7 @@ export default function DailyPlanView({ data }) {
         </section>
       )}
 
-      {/* Add Task Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-[#dde7c7] animate-in slide-in-from-bottom-4 duration-200">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-bold text-[#313c1a] text-lg">Add Task for Today</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-[#627833] hover:text-[#313c1a]"><X size={22} /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-[#627833] mb-1.5">Subject (optional)</label>
-                <select value={addForm.subjectId} onChange={e => setAddForm(f => ({ ...f, subjectId: e.target.value }))}
-                  className="w-full p-3 rounded-xl border border-[#dde7c7] text-[#313c1a] bg-[#f8faf4] font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#77bfa3]">
-                  <option value="">No Subject</option>
-                  {subjects?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#627833] mb-1.5">Task Title</label>
-                <input type="text" value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Revise Module 2 topics"
-                  className="w-full p-3 rounded-xl border border-[#dde7c7] text-[#313c1a] bg-[#f8faf4] font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#77bfa3]"
-                  onKeyDown={e => e.key === 'Enter' && handleAddTask()}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#627833] mb-1.5">Planned Minutes</label>
-                <input type="number" value={addForm.plannedMinutes} onChange={e => setAddForm(f => ({ ...f, plannedMinutes: e.target.value }))}
-                  className="w-full p-3 rounded-xl border border-[#dde7c7] text-[#313c1a] bg-[#f8faf4] font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#77bfa3]"
-                  min="5" max="480"
-                />
-              </div>
-              <button onClick={handleAddTask} disabled={isAdding || !addForm.title.trim()}
-                className="w-full py-3.5 bg-[#77bfa3] hover:bg-[#50a987] text-white font-bold rounded-xl transition-all disabled:opacity-50 flex justify-center items-center gap-2">
-                {isAdding ? <Loader2 size={18} className="animate-spin" /> : 'Add Task'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
