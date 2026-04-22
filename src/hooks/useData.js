@@ -107,7 +107,14 @@ export function useAppData(session) {
 
       // Dashboard derived data
       const todayStr = new Date().toISOString().split('T')[0];
-      const todaysTasks = tasks.filter(t => t.date === todayStr);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const todaysTasks = tasks.filter(t => 
+        t.date === todayStr || 
+        (t.date === tomorrowStr && t.status === 'moved_tomorrow')
+      );
       const overdueTasks = tasks.filter(t => t.date < todayStr && t.status === 'pending');
       const upcomingTasks = tasks.filter(t => t.date > todayStr && t.status === 'pending');
 
@@ -255,16 +262,18 @@ export function useAppData(session) {
 }
 
 // ─── Mutation hook ────────────────────────────────────────────────────────────
-export function useDataMutation() {
+export function useDataMutation(userId) {
   const queryClient = useQueryClient();
+  const activePlanId = useAppStore(state => state.activePlanId);
 
   return useMutation({
     mutationFn: async (payload) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id;
+      }
       if (!userId) throw new Error('Not authenticated');
 
-      const activePlanId = useAppStore.getState().activePlanId;
       const { action } = payload;
 
       // ── Plan management ──
@@ -593,6 +602,25 @@ export function useDataMutation() {
         }
       }
 
+      else if (action === 'uncomplete') {
+        const { error: taskErr } = await supabase.from('study_plan')
+          .update({ status: 'pending' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (taskErr) throw taskErr;
+
+        if (payload.topicId) {
+          const { error: topErr } = await supabase.from('topics')
+            .update({ 
+              status: 'todo', 
+              completed_date: null 
+            })
+            .eq('id', payload.topicId)
+            .eq('user_id', userId);
+          if (topErr) throw topErr;
+        }
+      }
+
       else if (action === 'skip') {
         const { error } = await supabase.from('study_plan')
           .update({ status: 'skipped' })
@@ -614,7 +642,16 @@ export function useDataMutation() {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const dateStr = tomorrow.toISOString().split('T')[0];
         const { error } = await supabase.from('study_plan')
-          .update({ date: dateStr, status: 'pending' })
+          .update({ date: dateStr, status: 'moved_tomorrow' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (error) throw error;
+      }
+
+      else if (action === 'undo-move') {
+        const today = new Date().toISOString().split('T')[0];
+        const { error } = await supabase.from('study_plan')
+          .update({ date: today, status: 'pending' })
           .eq('id', payload.taskId)
           .eq('user_id', userId);
         if (error) throw error;
@@ -663,12 +700,87 @@ export function useDataMutation() {
       return { success: true };
     },
 
-    onSuccess: () => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.id) {
-          queryClient.invalidateQueries({ queryKey: ['appData', session.user.id] });
-        }
-      });
+    onMutate: async (payload) => {
+      const appDataKey = ['appData', userId, activePlanId];
+      
+      await queryClient.cancelQueries({ queryKey: appDataKey });
+      const previousData = queryClient.getQueryData(appDataKey);
+
+      if (previousData) {
+        queryClient.setQueryData(appDataKey, old => {
+          // Deepish clone to ensure React reactivity
+          const newData = { 
+            ...old,
+            tasks: old.tasks ? [...old.tasks] : [],
+            topics: old.topics ? [...old.topics] : [],
+            dashboard: old.dashboard ? { ...old.dashboard } : null
+          };
+          
+          const { action, taskId, topicId, status: newStatus, isWeak } = payload;
+          const todayStr = new Date().toISOString().split('T')[0];
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+          // 1. Update task rows
+          if (taskId && newData.tasks) {
+            newData.tasks = newData.tasks.map(t => {
+              if (t.id === taskId) {
+                if (action === 'complete') return { ...t, status: 'completed' };
+                if (action === 'uncomplete') return { ...t, status: 'pending' };
+                if (action === 'skip') return { ...t, status: 'skipped' };
+                if (action === 'unskip') return { ...t, status: 'pending' };
+                if (action === 'move-tomorrow') return { ...t, status: 'moved_tomorrow', date: tomorrowStr };
+                if (action === 'undo-move') return { ...t, status: 'pending', date: todayStr };
+              }
+              return t;
+            });
+          }
+
+          // 2. Update topic rows
+          if (topicId && newData.topics) {
+            newData.topics = newData.topics.map(t => {
+              if (t.id === topicId) {
+                if (action === 'complete') return { ...t, status: 'done', completed_date: todayStr };
+                if (action === 'uncomplete') return { ...t, status: 'todo', completed_date: null };
+                if (action === 'updateTopicStatus') return { ...t, status: newStatus };
+                if (action === 'toggleTopicWeak') return { ...t, is_weak: isWeak };
+              }
+              return t;
+            });
+          }
+
+          // 3. Update dashboard views and stats
+          if (newData.dashboard && newData.tasks) {
+             newData.dashboard.todaysTasks = newData.tasks.filter(t => 
+               t.date === todayStr || (t.date === tomorrowStr && t.status === 'moved_tomorrow')
+             );
+             newData.dashboard.overdueTasks = newData.tasks.filter(t => t.date < todayStr && t.status === 'pending');
+             newData.dashboard.upcomingTasks = newData.tasks.filter(t => t.date > todayStr && t.status === 'pending');
+             
+             // Update counters for progress bar
+             newData.dashboard.completedCount = newData.tasks.filter(t => t.status === 'completed').length;
+             newData.dashboard.totalCount = newData.tasks.length;
+             
+             // Optimistic streak (simplified check)
+             newData.dashboard.streak = calculateStreak(newData.tasks);
+          }
+
+          return newData;
+        });
+      }
+
+      return { previousData, appDataKey };
+    },
+    onError: (err, payload, context) => {
+      if (context?.appDataKey) {
+        queryClient.setQueryData(context.appDataKey, context.previousData);
+      }
+    },
+    onSettled: (data, err, payload, context) => {
+      if (context?.appDataKey) {
+        queryClient.invalidateQueries({ queryKey: context.appDataKey });
+      }
     },
   });
 }

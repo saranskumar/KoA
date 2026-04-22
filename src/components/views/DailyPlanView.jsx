@@ -73,7 +73,7 @@ function EmptyStateToday({ subjects, activePlan }) {
 export default function DailyPlanView({ data, session }) {
   const { dashboard, subjects = [], activePlan, profile } = data || {};
   const { todaysTasks = [], overdueTasks = [], upcomingTasks = [] } = dashboard || {};
-  const mutation = useDataMutation();
+  const mutation = useDataMutation(session?.user?.id);
 
   const handleAction = (taskId, action, topicId) => {
     mutation.mutate({ action, taskId, topicId });
@@ -95,11 +95,13 @@ export default function DailyPlanView({ data, session }) {
     const subject = subjects?.find(s => s.id === task.subject_id);
     const isDone = task.status === 'completed';
     const isSkipped = task.status === 'skipped';
+    const isMoved = task.status === 'moved_tomorrow';
 
     return (
       <div className={`bg-white rounded-2xl p-5 mb-3 border-l-4 shadow-sm transition-all duration-200 ${
         isDone ? 'opacity-60 border-l-[#bfd8bd] bg-[#f8faf4]' :
         isSkipped ? 'opacity-40 border-l-[#dde7c7]' :
+        isMoved ? 'opacity-50 border-l-[#bfd8bd]' :
         isOverdue ? 'border-l-red-400' :
         'border-l-[#77bfa3] hover:shadow-md'
       } border border-[#edeec9]`}>
@@ -115,17 +117,17 @@ export default function DailyPlanView({ data, session }) {
                 <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">OVERDUE</span>
               )}
             </div>
-            <h4 className={`font-semibold text-base leading-snug ${isDone || isSkipped ? 'line-through text-[#98c9a3]' : 'text-[#313c1a]'}`}>
+            <h4 className={`font-semibold text-base leading-snug ${isDone || isSkipped || isMoved ? 'line-through text-[#98c9a3]' : 'text-[#313c1a]'}`}>
               {task.title}
             </h4>
-            {!isDone && !isSkipped && (
+            {!isDone && !isSkipped && !isMoved && (
               <div className="flex items-center gap-1 mt-1 text-xs text-[#627833]">
                 <Clock size={11} /> {task.planned_minutes}m
               </div>
             )}
           </div>
 
-          {!isDone && !isSkipped ? (
+          {!isDone && !isSkipped && !isMoved ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleAction(task.id, 'complete', task.topic_id)}
@@ -151,10 +153,31 @@ export default function DailyPlanView({ data, session }) {
               </button>
             </div>
           ) : isDone ? (
-            <div className="text-[#3c7f65] font-bold text-sm flex items-center gap-1.5 px-3 py-1.5 bg-[#bfd8bd]/20 rounded-lg border border-[#dde7c7]">
-              <Check size={15} /> Done
+            <div className="flex items-center gap-2">
+              <div className="text-[#3c7f65] font-bold text-sm flex items-center gap-1.5 px-3 py-1.5 bg-[#bfd8bd]/20 rounded-lg border border-[#dde7c7]">
+                <Check size={15} /> Done
+              </div>
+              <button 
+                onClick={() => handleAction(task.id, 'uncomplete', task.topic_id)}
+                className="px-3 h-8 text-xs font-bold bg-white hover:bg-[#f8faf4] text-[#627833] hover:text-[#3c7f65] border border-[#dde7c7] hover:border-[#77bfa3] rounded-lg transition-all"
+              >
+                Undo
+              </button>
+            </div>
+          ) : isMoved ? (
+            <div className="flex items-center gap-2">
+              <div className="text-[#627833] font-bold text-[10px] uppercase tracking-widest px-3 py-1.5 bg-[#edeec9]/40 rounded-lg border border-[#dde7c7]">
+                Moved to Tomorrow
+              </div>
+              <button 
+                onClick={() => handleAction(task.id, 'undo-move')}
+                className="px-3 h-8 text-xs font-bold bg-white hover:bg-[#f8faf4] text-[#627833] hover:text-[#3c7f65] border border-[#dde7c7] hover:border-[#77bfa3] rounded-lg transition-all"
+              >
+                Undo
+              </button>
             </div>
           ) : null}
+
 
         </div>
       </div>
