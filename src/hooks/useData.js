@@ -321,7 +321,7 @@ export function useDataMutation() {
               name: sub.name,
               exam_date: sub.exam_date || null,
               sort_order: subIdx + 1,
-              template_subject_id: 'custom-ai'
+              template_subject_id: null
             });
 
             if (Array.isArray(sub.modules)) {
@@ -334,7 +334,7 @@ export function useDataMutation() {
                    subject_id: subId,
                    title: mod.name,
                    module_no: modIdx + 1,
-                   template_module_id: 'custom-ai'
+                   template_module_id: null
                  });
 
                  if (Array.isArray(mod.topics)) {
@@ -350,7 +350,7 @@ export function useDataMutation() {
                        name: topName,
                        title: topName,
                        sort_order: topIdx + 1,
-                       template_topic_id: 'custom-ai'
+                       template_topic_id: null
                      });
                    });
                  }
