@@ -574,6 +574,53 @@ export function useDataMutation() {
         if (error) throw error;
       }
 
+      else if (action === 'complete') {
+        const { error: taskErr } = await supabase.from('study_plan')
+          .update({ status: 'completed' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (taskErr) throw taskErr;
+
+        if (payload.topicId) {
+          const { error: topErr } = await supabase.from('topics')
+            .update({ 
+              status: 'done', 
+              completed_date: new Date().toISOString().split('T')[0] 
+            })
+            .eq('id', payload.topicId)
+            .eq('user_id', userId);
+          if (topErr) throw topErr;
+        }
+      }
+
+      else if (action === 'skip') {
+        const { error } = await supabase.from('study_plan')
+          .update({ status: 'skipped' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (error) throw error;
+      }
+
+      else if (action === 'unskip') {
+        const { error } = await supabase.from('study_plan')
+          .update({ status: 'pending' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (error) throw error;
+      }
+
+      else if (action === 'move-tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split('T')[0];
+        const { error } = await supabase.from('study_plan')
+          .update({ date: dateStr, status: 'pending' })
+          .eq('id', payload.taskId)
+          .eq('user_id', userId);
+        if (error) throw error;
+      }
+
+
       // ── Profile / Options Management ──
       else if (action === 'updateProfile') {
         const { error } = await supabase.from('profiles')

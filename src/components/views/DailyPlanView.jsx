@@ -75,8 +75,8 @@ export default function DailyPlanView({ data, session }) {
   const { todaysTasks = [], overdueTasks = [], upcomingTasks = [] } = dashboard || {};
   const mutation = useDataMutation();
 
-  const handleAction = (taskId, action) => {
-    mutation.mutate({ action, taskId });
+  const handleAction = (taskId, action, topicId) => {
+    mutation.mutate({ action, taskId, topicId });
   };
 
   const completedToday = todaysTasks.filter(t => t.status === 'completed').length;
@@ -128,7 +128,7 @@ export default function DailyPlanView({ data, session }) {
           {!isDone && !isSkipped ? (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleAction(task.id, 'complete')}
+                onClick={() => handleAction(task.id, 'complete', task.topic_id)}
                 className="h-9 px-4 bg-[#77bfa3] hover:bg-[#50a987] text-white font-bold rounded-xl text-sm flex items-center gap-1.5 transition-all shadow-[0_2px_8px_rgba(119,191,163,0.3)]"
               >
                 <Check size={15} /> Done
