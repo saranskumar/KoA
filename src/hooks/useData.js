@@ -708,7 +708,14 @@ export function useDataMutation(userId) {
     },
 
     onMutate: async (payload) => {
-      const appDataKey = ['appData', userId, activePlanId];
+      let resolvedUserId = userId;
+      if (!resolvedUserId) {
+        const queries = queryClient.getQueriesData({ queryKey: ['appData'] });
+        const validQuery = queries.find(q => q[0] && q[0][1]);
+        if (validQuery) resolvedUserId = validQuery[0][1];
+      }
+      
+      const appDataKey = ['appData', resolvedUserId, activePlanId];
       
       await queryClient.cancelQueries({ queryKey: appDataKey });
       const previousData = queryClient.getQueryData(appDataKey);
