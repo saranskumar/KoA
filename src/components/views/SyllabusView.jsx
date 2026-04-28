@@ -100,7 +100,24 @@ export default function SyllabusView({ data }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {subjects.map(sub => {
+          {[...subjects].sort((a, b) => {
+            const getDays = (dateStr) => {
+              if (!dateStr) return null;
+              return Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+            };
+            const aDays = getDays(a.exam_date);
+            const bDays = getDays(b.exam_date);
+            const aPast = aDays !== null && aDays < 0;
+            const bPast = bDays !== null && bDays < 0;
+
+            if (aPast && !bPast) return 1; // Send past exams to bottom
+            if (!aPast && bPast) return -1;
+            
+            if (aDays !== null && bDays !== null) return aDays - bDays; // Closest exam first
+            if (aDays !== null) return -1; // Subjects with exams before no exams
+            if (bDays !== null) return 1;
+            return 0;
+          }).map(sub => {
             const subTopics = topics?.filter(t => t.subject_id === sub.id) || [];
             const completedTopics = subTopics.filter(t => ['done', 'mastered', 'revise_1', 'revise_2'].includes(t.status)).length;
             const pct = subTopics.length > 0 ? Math.round((completedTopics / subTopics.length) * 100) : 0;

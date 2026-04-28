@@ -23,6 +23,7 @@ export default function SubjectDetailView({ data }) {
   const [newTopicModuleId, setNewTopicModuleId] = useState('');
   const [newTopicName, setNewTopicName] = useState('');
   const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
 
   if (!subject) {
     return (
@@ -54,6 +55,21 @@ export default function SubjectDetailView({ data }) {
 
   const handlePlanToday = (topic) => {
     const today = new Date().toISOString().split('T')[0];
+    const { tasks } = data || {};
+    
+    // Prevent duplicate active tasks for the same topic today
+    const isAlreadyAdded = tasks?.some(t => 
+      t.topic_id === topic.id && 
+      t.date === today && 
+      (t.status === 'pending' || t.status === 'completed')
+    );
+
+    if (isAlreadyAdded) {
+      setToastMsg('Already in today\'s plan!');
+      setTimeout(() => setToastMsg(''), 2500);
+      return;
+    }
+
     mutation.mutate({
       action: 'addTask',
       task: {
@@ -67,6 +83,9 @@ export default function SubjectDetailView({ data }) {
         status: 'pending',
       }
     });
+
+    setToastMsg('Added to today\'s plan!');
+    setTimeout(() => setToastMsg(''), 2500);
   };
 
   const handleAddTopic = async () => {
@@ -251,34 +270,58 @@ export default function SubjectDetailView({ data }) {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-[#dde7c7] animate-in slide-in-from-bottom-4 duration-200">
             <div className="flex justify-between items-center mb-5">
-              <h3 className="font-bold text-[#313c1a] text-lg">Add Topic</h3>
-              <button onClick={() => setShowAddTopicModal(false)} className="text-[#627833] hover:text-[#313c1a]"><X size={22} /></button>
+              <h3 className="font-bold text-[#313c1a] text-lg">Add Custom Topic</h3>
+              <button onClick={() => setShowAddTopicModal(false)} className="text-[#98c9a3] hover:text-[#313c1a]"><X size={20} /></button>
             </div>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#627833] mb-1.5">Module</label>
-                <select value={newTopicModuleId} onChange={e => setNewTopicModuleId(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#dde7c7] text-[#313c1a] bg-[#f8faf4] font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#77bfa3]">
-                  <option value="">Select module...</option>
-                  {subjectModules.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                <label className="block text-xs font-bold text-[#627833] uppercase tracking-wider mb-2">Module</label>
+                <select
+                  value={newTopicModuleId}
+                  onChange={e => setNewTopicModuleId(e.target.value)}
+                  className="w-full bg-[#f8faf4] border-2 border-[#edeec9] rounded-xl px-4 py-3 text-sm font-bold text-[#313c1a] focus:outline-none focus:border-[#77bfa3]"
+                >
+                  <option value="">Select a module...</option>
+                  {subjectModules.map(m => (
+                    <option key={m.id} value={m.id}>Module {m.module_no}: {m.title}</option>
+                  ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-semibold text-[#627833] mb-1.5">Topic Name</label>
-                <input type="text" value={newTopicName} onChange={e => setNewTopicName(e.target.value)}
-                  placeholder="e.g. Dijkstra's Algorithm"
-                  className="w-full p-3 rounded-xl border border-[#dde7c7] text-[#313c1a] bg-[#f8faf4] font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#77bfa3]"
-                  onKeyDown={e => e.key === 'Enter' && handleAddTopic()}
+                <label className="block text-xs font-bold text-[#627833] uppercase tracking-wider mb-2">Topic Name</label>
+                <input
+                  type="text"
+                  value={newTopicName}
+                  onChange={e => setNewTopicName(e.target.value)}
+                  placeholder="E.g., Quantum Mechanics"
+                  className="w-full bg-[#f8faf4] border-2 border-[#edeec9] rounded-xl px-4 py-3 text-sm font-bold text-[#313c1a] placeholder-[#aebf8a] focus:outline-none focus:border-[#77bfa3]"
                 />
               </div>
-              <button onClick={handleAddTopic} disabled={isAddingTopic || !newTopicName.trim() || !newTopicModuleId}
-                className="w-full py-3.5 bg-[#77bfa3] hover:bg-[#50a987] text-white font-bold rounded-xl transition-all disabled:opacity-50 flex justify-center items-center gap-2">
-                {isAddingTopic ? <Loader2 size={18} className="animate-spin" /> : 'Add Topic'}
+
+              <button
+                onClick={handleAddTopic}
+                disabled={!newTopicName.trim() || !newTopicModuleId || isAddingTopic}
+                className="w-full h-12 bg-[#77bfa3] hover:bg-[#50a987] text-white font-bold rounded-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all shadow-[0_4px_14px_rgba(119,191,163,0.4)]"
+              >
+                {isAddingTopic ? <><Loader2 size={18} className="animate-spin" /> Adding...</> : 'Save Topic'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-[#313c1a] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 font-bold text-sm tracking-wide border border-[#627833]">
+            <CheckCircle size={16} className="text-[#77bfa3]" />
+            {toastMsg}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
