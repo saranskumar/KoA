@@ -23,7 +23,7 @@ export default function SubjectDetailView({ data }) {
   const [newTopicModuleId, setNewTopicModuleId] = useState('');
   const [newTopicName, setNewTopicName] = useState('');
   const [isAddingTopic, setIsAddingTopic] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const [toastMsg, setToastMsg] = useState({ text: '', id: 0 });
 
   if (!subject) {
     return (
@@ -65,8 +65,8 @@ export default function SubjectDetailView({ data }) {
     );
 
     if (isAlreadyAdded) {
-      setToastMsg('Already in today\'s plan!');
-      setTimeout(() => setToastMsg(''), 2500);
+      setToastMsg({ text: 'Already in today\'s plan!', id: Date.now() });
+      setTimeout(() => setToastMsg({ text: '', id: 0 }), 2500);
       return;
     }
 
@@ -84,8 +84,8 @@ export default function SubjectDetailView({ data }) {
       }
     });
 
-    setToastMsg('Added to today\'s plan!');
-    setTimeout(() => setToastMsg(''), 2500);
+    setToastMsg({ text: 'Added to today\'s plan!', id: Date.now() });
+    setTimeout(() => setToastMsg({ text: '', id: 0 }), 2500);
   };
 
   const handleAddTopic = async () => {
@@ -313,11 +313,11 @@ export default function SubjectDetailView({ data }) {
       )}
 
       {/* Toast Notification */}
-      {toastMsg && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+      {toastMsg.text && (
+        <div key={toastMsg.id} className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="bg-[#313c1a] text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 font-bold text-sm tracking-wide border border-[#627833]">
             <CheckCircle size={16} className="text-[#77bfa3]" />
-            {toastMsg}
+            {toastMsg.text}
           </div>
         </div>
       )}

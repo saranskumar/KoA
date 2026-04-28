@@ -29,6 +29,7 @@ export default function SyllabusView({ data }) {
 
   const getUrgencyStyle = (daysLeft) => {
     if (daysLeft === null) return '';
+    if (daysLeft < 0) return 'text-[#98c9a3] bg-[#f8faf4] border-[#edeec9]';
     if (daysLeft <= 3) return 'text-red-500 bg-red-50 border-red-200';
     if (daysLeft <= 7) return 'text-orange-500 bg-orange-50 border-orange-200';
     return 'text-[#50a987] bg-[#bfd8bd]/20 border-[#dde7c7]';
@@ -134,7 +135,7 @@ export default function SyllabusView({ data }) {
                   <div className="flex items-center gap-2">
                     {daysLeft !== null && (
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getUrgencyStyle(daysLeft)}`}>
-                        {daysLeft <= 0 ? 'Today!' : `${daysLeft}d`}
+                        {daysLeft < 0 ? 'Passed' : daysLeft === 0 ? 'Today!' : `${daysLeft}d`}
                       </span>
                     )}
                     <ChevronRight size={16} className="text-[#bfd8bd] group-hover:text-[#77bfa3] transition-colors" />
