@@ -6,6 +6,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { useDataMutation } from '../../hooks/useData';
 import { generateId } from '../../lib/utils';
+import confetti from 'canvas-confetti';
 
 export default function SubjectDetailView({ data }) {
   const selectedSubjectId = useAppStore(state => state.selectedSubjectId);
@@ -82,6 +83,13 @@ export default function SubjectDetailView({ data }) {
         planned_minutes: 60,
         status: 'pending',
       }
+    });
+
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      origin: { y: 0.85 },
+      colors: ['#77bfa3', '#bfd8bd', '#50a987', '#dde7c7']
     });
 
     setToastMsg({ text: 'Added to today\'s plan!', id: Date.now() });
